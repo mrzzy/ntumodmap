@@ -21,10 +21,11 @@ def is_keyword(text: str) -> bool:
         return True
     return False
 
-def lex(lines: list[str]) -> list[Token]:
-    tokens: list[Token] = []
+def lex(lines: list[str]) -> list[list[Token]]:
+    tokens: list[list[Token]] = []
     current: int = 0
     for line in lines:
+        sub_tokens: list[Token] = []
         while current < len(line):
             character = line[current]
             current += 1
@@ -32,37 +33,46 @@ def lex(lines: list[str]) -> list[Token]:
                 character == '\t' or
                 character == '\n'):
                 continue
-            elif character == TokenType.DOT:
-                tokens.append(Token(TokenType.DOT, "."))
-            elif character == TokenType.COMMA:
-                tokens.append(Token(TokenType.COMMA, ","))
-            elif character == TokenType.COLON:
-                tokens.append(Token(TokenType.COLON, ":"))
-            elif character == TokenType.SEMICOLON:
-                tokens.append(Token(TokenType.SEMICOLON, ";"))
-            elif character == TokenType.LPAREN:
-                tokens.append(Token(TokenType.LPAREN, "("))
-            elif character == TokenType.RPAREN:
-                tokens.append(Token(TokenType.RPAREN, ")"))
-            elif character == TokenType.LBRACE:
-                tokens.append(Token(TokenType.LBRACE, "{"))
-            elif character == TokenType.RBRACE:
-                tokens.append(Token(TokenType.RBRACE, "}"))
-            elif character == TokenType.LBRACKET:
-                tokens.append(Token(TokenType.LBRACKET, "["))
-            elif character == TokenType.RBRACKET:
-                tokens.append(Token(TokenType.RBRACKET, "]"))
-            elif character.isalpha():
-                # check if its a keyword
+            elif character == ".":
+                sub_tokens.append(Token(TokenType.DOT, "."))
+            elif character == ",":
+                sub_tokens.append(Token(TokenType.COMMA, ","))
+            elif character == ":":
+                sub_tokens.append(Token(TokenType.COLON, ":"))
+            elif character == ";":
+                sub_tokens.append(Token(TokenType.SEMICOLON, ";"))
+            elif character == "(":
+                sub_tokens.append(Token(TokenType.LPAREN, "("))
+            elif character == ")":
+                sub_tokens.append(Token(TokenType.RPAREN, ")"))
+            elif character == "{":
+                sub_tokens.append(Token(TokenType.LBRACE, "{"))
+            elif character == "}":
+                sub_tokens.append(Token(TokenType.RBRACE, "}"))
+            elif character == "[":
+                sub_tokens.append(Token(TokenType.LBRACKET, "["))
+            elif character == "]":
+                sub_tokens.append(Token(TokenType.RBRACKET, "]"))
+            elif character == "-":
+                sub_tokens.append(Token(TokenType.DASH, "-"))
+            elif character == "&":
+                sub_tokens.append(Token(TokenType.AMP, "&"))
+            elif character.isalnum():
                 extend = current
-                while extend < len(line) and line[extend].isalpha():
+                while extend < len(line) and line[extend].isalnum():
                     extend += 1
                 identifier = line[current-1:extend]
+                # check if its a keyword, otherwise its an identifier
                 if is_keyword(identifier):
-                    tokens.append(Token(keywords[identifier], identifier))
+                    sub_tokens.append(Token(keywords[identifier], identifier))
+                elif identifier.isdigit():
+                    sub_tokens.append(Token(TokenType.NUMBER, identifier))
                 else:
-                    tokens.append(Token(TokenType.IDENTIFIER, identifier))
+                    sub_tokens.append(Token(TokenType.IDENTIFIER, identifier))
                 current = extend
+            else:
+                print("Current not supported: ", character)
+        tokens.append(sub_tokens)
     return tokens
 
 

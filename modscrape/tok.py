@@ -32,7 +32,10 @@ class TokenType(Enum):
     RBRACE    = "}"
     LBRACKET  = "["
     RBRACKET  = "]"
+    DASH      = "-"
+    AMP       = "&"
 
+    NUMBER = "NUMBER"
     IDENTIFIER = "IDENTIFIER"
 
 class Token:
