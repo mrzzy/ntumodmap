@@ -8,6 +8,9 @@ from typing import Dict, FrozenSet, Tuple, cast
 from dataclasses import dataclass
 import requests
 from bs4 import BeautifulSoup, Tag
+from itertools import chain
+
+from lexer import lex
 
 COURSE_CONTENT_URL = "https://wis.ntu.edu.sg/webexe/owa/aus_subj_cont"
 
@@ -55,7 +58,27 @@ def scrape_modules(semester: str, course: str):
         mod_listing = BeautifulSoup(response.content.decode(),"lxml")
         # each module is encoded as table
         mod_tables = mod_listing.find_all("table")
-        print(mod_listing)
+        # print(mod_tables)
+        # for every table:
+        lines = []
+        for table in mod_tables:
+            individual = []
+            rows = table.find_all('tr')
+            for row in rows:
+                cols = [ele.text.strip() for ele in row.find_all('td')]
+                individual.append(cols)
+            lines.append(individual)
+        return lines
+
+# Takes a nested list and concatenates inner list
+# e.g. [[a], [b]] -> [[a, b]]
+def concat_nested(lines: list[list[str]]) -> list[list[str]]:
+    return [list(chain(*line)) for line in lines]
+
+# Takes a nested list and filters out all empty strings
+# e.g. [[a, b, ''], [c, '']] -> [[a, b], [c]]
+def filter_empty(lines: list[list[str]]) -> list[list[str]]:
+    return [list(filter(None, line)) for line in lines]
 
 if __name__ == '__main__':
     # scrape main page
@@ -67,4 +90,9 @@ if __name__ == '__main__':
     # scrape courses from main page
     courses = extract_options(mainpage, "r_course_yr")
 
-    scrape_modules("2023_1", "CSC;;1;F")
+    lines = scrape_modules("2023_1", "CSC;;1;F")
+    lines = concat_nested(lines)
+    lines = filter_empty(lines)
+    lines = [' '.join(line) for line in lines]
+
+    lex(lines)
