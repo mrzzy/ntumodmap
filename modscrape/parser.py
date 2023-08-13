@@ -20,6 +20,7 @@ class Parser():
         return self.tokens[self.paragraph][self.position]
 
     def previous_token(self) -> Optional[Token]:
+        """
         # If the previous token is the previous paragraph,
         # this will have to reflect that
         if self.position == 0 and self.paragraph != 0 :
@@ -29,15 +30,21 @@ class Parser():
             return self.tokens[self.paragraph][self.position-1]
         # This case will hit for the case being at the 
         # start of the parsing phase
+        """
+        if self.position > 0:
+            return self.tokens[self.paragraph][self.position-1]
         return None
 
     def move(self):
+        """
         # In the case that there is a token to be moved
         if self.position != len(self.tokens[self.paragraph])-1:
             self.position += 1
         else: # In the case that there is no more tokens in the current paragraph
             self.paragraph += 1
             self.position = 0
+        """
+        self.position += 1
 
     # Takes in a TokenType, if the current token is of the same TokenType
     # it will move the position up
