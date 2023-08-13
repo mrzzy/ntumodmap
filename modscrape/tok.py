@@ -51,3 +51,7 @@ class Token:
         self.literal = literal
     def __repr__(self):
         return f"({self.token_type}, {self.literal})"
+
+def flatten_identifier_tokens(tokens: list[Token]) -> Token:
+    return Token(TokenType.IDENTIFIER, ' '.join([token.literal for token in tokens]))
+

@@ -1,7 +1,15 @@
 import sys
-from tok import Token, TokenType
-from typing import Optional, Callable
+from tok import Token, TokenType, flatten_identifier_tokens
+from typing import Optional, Callable, TypeVar
 from module import Module
+
+# I note that this may be bad practice but I dont see any other way to
+# unwrap an optional
+# This makes it so that unwrap is generic
+T = TypeVar('T')
+def unwrap(arg: Optional[T]) -> T:
+    assert arg is not None
+    return arg
 
 def contextual(func: Callable[[], Optional[Module]], parser: 'Parser') -> Optional[Module]:
     # Resets position if `func` returns None.
@@ -108,17 +116,27 @@ class Parser():
                 return None
         return self.previous_token()
 
-    def parse_module(self) -> Optional[Module]:
-        identifier: Optional[Token] = self.consume(TokenType.IDENTIFIER, "Expected an identifier to start off a module")
-        if identifier is not None:
-            print(identifier)
+    def module(self) -> Optional[Module]:
+        identifier: Optional[Token] = self.consume(TokenType.MODULE_CODE,
+                                                   "Expected an module code to start off a module")
+        if identifier is None: return None
+
+        # Parse module name until the numeric AU
+        module_description_list = []
+        while (not self.match(TokenType.NUMBER)):
+            token = self.current_token()
+            self.move()
+            module_description_list.append(token)
+        module_description = flatten_identifier_tokens(module_description_list)
+        print(module_description)
+
         sys.exit(0)
         return None
 
     def parse(self) -> list[Module]:
         modules: list[Module] = []
         for _ in self.tokens:
-            module = self.parse_module()
+            module = self.module()
             if module is not None:
                 modules.append(module)
                 # Reset the indices and move on to the next module
