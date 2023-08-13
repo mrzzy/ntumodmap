@@ -9,6 +9,7 @@ import requests
 from bs4 import BeautifulSoup, Tag
 from itertools import chain
 from lexer import lex
+from parser import parse
 from pprint import pprint
 
 COURSE_CONTENT_URL = "https://wis.ntu.edu.sg/webexe/owa/aus_subj_cont"
@@ -83,4 +84,5 @@ if __name__ == '__main__':
     lines = [' '.join(line) for line in lines]
 
     tokens = lex(lines)
-    pprint(tokens)
+    # pprint(tokens)
+    parse(tokens)

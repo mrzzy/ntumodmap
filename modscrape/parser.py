@@ -1,7 +1,22 @@
 import sys
 from tok import Token, TokenType
-from typing import Optional
+from typing import Optional, Callable
 from module import Module
+
+def contextual(func: Callable[[], Optional[Module]], parser: 'Parser') -> Optional[Module]:
+    # Resets position if `func` returns None.
+    def contextual_wrapper(parser: Parser) -> Optional[Module]:
+        # Gets the starting position
+        begin = parser.position
+        # Try to run the function
+        res = func()
+        # If function parses Nothing => returns None
+        if res is None:
+            # Sets the position back to where it started
+            parser.set_position(begin)
+            return
+        return res
+    return contextual_wrapper(parser)
 
 class Parser():
     def __init__(self, tokens: list[list[Token]]):
@@ -28,7 +43,7 @@ class Parser():
             return self.tokens[self.paragraph-1][-1]
         if self.position > 0:
             return self.tokens[self.paragraph][self.position-1]
-        # This case will hit for the case being at the 
+        # This case will hit for the case being at the
         # start of the parsing phase
         """
         if self.position > 0:
@@ -93,8 +108,23 @@ class Parser():
                 return None
         return self.previous_token()
 
+    def parse_module(self) -> Optional[Module]:
+        identifier: Optional[Token] = self.consume(TokenType.IDENTIFIER, "Expected an identifier to start off a module")
+        if identifier is not None:
+            print(identifier)
+        sys.exit(0)
+        return None
+
     def parse(self) -> list[Module]:
-        return []
+        modules: list[Module] = []
+        for _ in self.tokens:
+            module = self.parse_module()
+            if module is not None:
+                modules.append(module)
+                # Reset the indices and move on to the next module
+                self.paragraph += 1
+                self.position = 0
+        return modules
 
 def parse(tokens: list[list[Token]]) -> list[Module]:
     parser = Parser(tokens)

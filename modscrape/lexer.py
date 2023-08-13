@@ -76,7 +76,16 @@ def lex(lines: list[str]) -> list[list[Token]]:
                 elif identifier.isdigit():
                     sub_tokens.append(Token(TokenType.NUMBER, identifier))
                 else:
-                    sub_tokens.append(Token(TokenType.IDENTIFIER, identifier))
+                    if (len(identifier) == 6 and
+                        identifier[0].isalpha() and
+                        identifier[1].isalpha() and
+                        identifier[2].isdigit() and
+                        identifier[3].isdigit() and
+                        identifier[4].isdigit() and
+                        identifier[5].isdigit()):
+                        sub_tokens.append(Token(TokenType.MODULE_CODE, identifier))
+                    else:
+                        sub_tokens.append(Token(TokenType.IDENTIFIER, identifier))
                 current = extend
             else:
                 print("Current not supported: ", character)
