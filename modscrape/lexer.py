@@ -57,6 +57,14 @@ def lex(lines: list[str]) -> list[list[Token]]:
                 sub_tokens.append(Token(TokenType.DASH, "-"))
             elif character == "&":
                 sub_tokens.append(Token(TokenType.AMP, "&"))
+            elif character == "'":
+                sub_tokens.append(Token(TokenType.SINGLE_QUOTE, "'"))
+            elif character == "/":
+                sub_tokens.append(Token(TokenType.SLASH, "/"))
+            elif character == "`":
+                sub_tokens.append(Token(TokenType.BACKTICK, "`"))
+            elif character == "?":
+                sub_tokens.append(Token(TokenType.QUESTION_MARK, "?"))
             elif character.isalnum():
                 extend = current
                 while extend < len(line) and line[extend].isalnum():
@@ -73,6 +81,7 @@ def lex(lines: list[str]) -> list[list[Token]]:
             else:
                 print("Current not supported: ", character)
         tokens.append(sub_tokens)
+        current = 0
     return tokens
 
 
