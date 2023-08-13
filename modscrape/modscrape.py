@@ -4,8 +4,7 @@
 #
 
 
-from typing import Dict, FrozenSet, Tuple, cast
-from dataclasses import dataclass
+from typing import Dict, cast
 import requests
 from bs4 import BeautifulSoup, Tag
 from itertools import chain
@@ -13,18 +12,6 @@ from lexer import lex
 from pprint import pprint
 
 COURSE_CONTENT_URL = "https://wis.ntu.edu.sg/webexe/owa/aus_subj_cont"
-
-# TODO(lczm): how do we represent modules as part of an IR?
-@dataclass
-class Module:
-    code: str
-    title: str
-    au: float
-    needs_modules: str
-    rejects_modules: FrozenSet[str]
-    rejects_courses: FrozenSet[str]
-    allowed_courses: FrozenSet[str]
-    is_bde: bool
 
 def extract_options(page: BeautifulSoup, name: str) -> Dict[str, str]:
     """Extract options from the select element with the given name attribute.
