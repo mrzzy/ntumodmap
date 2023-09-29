@@ -88,7 +88,7 @@ def lex(lines: list[str]) -> list[list[Token]]:
                         sub_tokens.append(Token(TokenType.IDENTIFIER, identifier))
                 current = extend
             else:
-                print("Current not supported: ", character)
+                print("Currently not supported: ", character)
         tokens.append(sub_tokens)
         current = 0
     return tokens
