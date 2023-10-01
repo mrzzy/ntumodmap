@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class TokenType(Enum):
     # Mod cred
     AU = "AU"
@@ -22,21 +23,22 @@ class TokenType(Enum):
     NOT_OFFERED_AS_UE = "Not offered as Unrestricted Elective"
     NOT_OFFERED_AS_BDE = "Not offered as Broadening and Deepening Elective"
 
-    DOT           = "."
-    COMMA         = ","
-    COLON         = ":"
-    SEMICOLON     = ";"
-    LPAREN        = "("
-    RPAREN        = ")"
-    LBRACE        = "{"
-    RBRACE        = "}"
-    LBRACKET      = "["
-    RBRACKET      = "]"
-    DASH          = "-"
-    AMP           = "&"
-    SINGLE_QUOTE  = "'"
-    SLASH         = "/"
-    BACKTICK      = "`"
+    DOT = "."
+    COMMA = ","
+    COLON = ":"
+    SEMICOLON = ";"
+    LPAREN = "("
+    RPAREN = ")"
+    LBRACE = "{"
+    RBRACE = "}"
+    LBRACKET = "["
+    RBRACKET = "]"
+    DASH = "-"
+    AMP = "&"
+    SINGLE_QUOTE = "'"
+    DOUBLE_QUOTE = '"'
+    SLASH = "/"
+    BACKTICK = "`"
     QUESTION_MARK = "?"
 
     NUMBER = "NUMBER"
@@ -45,13 +47,15 @@ class TokenType(Enum):
     # This specifically refers to identifiers that starts with XX1234
     MODULE_CODE = "MODULE_CODE"
 
+
 class Token:
     def __init__(self, token_type: TokenType, literal: str):
         self.token_type = token_type
         self.literal = literal
+
     def __repr__(self):
         return f"({self.token_type}, {self.literal})"
 
-def flatten_identifier_tokens(tokens: list[Token]) -> Token:
-    return Token(TokenType.IDENTIFIER, ' '.join([token.literal for token in tokens]))
 
+def flatten_tokens(token_type: TokenType, tokens: list[Token], interval=" ") -> Token:
+    return Token(token_type, interval.join([token.literal for token in tokens]))

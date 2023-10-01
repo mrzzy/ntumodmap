@@ -1,17 +1,22 @@
 import sys
-from tok import Token, TokenType, flatten_identifier_tokens
+from tok import Token, TokenType, flatten_tokens
 from typing import Optional, Callable, TypeVar
 from module import Module
 
 # I note that this may be bad practice but I dont see any other way to
 # unwrap an optional
 # This makes it so that unwrap is generic
-T = TypeVar('T')
+T = TypeVar("T")
+
+
 def unwrap(arg: Optional[T]) -> T:
     assert arg is not None
     return arg
 
-def contextual(func: Callable[[], Optional[Module]], parser: 'Parser') -> Optional[Module]:
+
+def contextual(
+    func: Callable[[], Optional[Module]], parser: "Parser"
+) -> Optional[Module]:
     # Resets position if `func` returns None.
     def contextual_wrapper(parser: Parser) -> Optional[Module]:
         # Gets the starting position
@@ -24,9 +29,27 @@ def contextual(func: Callable[[], Optional[Module]], parser: 'Parser') -> Option
             parser.set_position(begin)
             return
         return res
+
     return contextual_wrapper(parser)
 
-class Parser():
+
+def tokens_to_module(
+    module_code: Token,
+    module_title: Token,
+    module_au: Token,
+) -> Module:
+    code = module_code.literal
+    title = module_title.literal
+    au = float(module_au.literal)
+
+    assert type(code) == str
+    assert type(title) == str
+    assert type(au) == float
+
+    return Module(code, title, au)
+
+
+class Parser:
     def __init__(self, tokens: list[list[Token]]):
         self.tokens = tokens
 
@@ -55,7 +78,7 @@ class Parser():
         # start of the parsing phase
         """
         if self.position > 0:
-            return self.tokens[self.paragraph][self.position-1]
+            return self.tokens[self.paragraph][self.position - 1]
         return None
 
     def move(self):
@@ -69,11 +92,22 @@ class Parser():
         """
         self.position += 1
 
+    # Takes in a TokenType, checks if the current token is of the same TokenType
+    def match_no_move(self, token_type: TokenType) -> bool:
+        current_token = self.current_token()
+        if current_token == None:
+            return False
+        if current_token.token_type == token_type:
+            return True
+        # All other cases are false
+        return False
+
     # Takes in a TokenType, if the current token is of the same TokenType
     # it will move the position up
     def match(self, token_type: TokenType) -> bool:
         current_token = self.current_token()
-        if current_token == None: return False
+        if current_token == None:
+            return False
         if current_token.token_type == token_type:
             self.move()
             return True
@@ -84,7 +118,8 @@ class Parser():
     # it will move the position up
     def match_multi(self, token_types: list[TokenType]) -> bool:
         current_token = self.current_token()
-        if current_token == None: return False
+        if current_token == None:
+            return False
         for token_type in token_types:
             if current_token.token_type == token_type:
                 self.move()
@@ -98,40 +133,67 @@ class Parser():
             current_token = self.current_token()
             if current_token is not None:
                 print(error, file=sys.stderr)
-                print(f"Error: expected {token_type} but received {current_token.token_type}",
-                      file=sys.stderr)
+                print(
+                    f"Error: expected {token_type} but received {current_token.token_type}",
+                    file=sys.stderr,
+                )
                 return None
         return self.previous_token()
 
-    def consume_multi(self,
-                      token_types: list[TokenType],
-                      error: str) -> Optional[Token]:
+    def consume_multi(
+        self, token_types: list[TokenType], error: str
+    ) -> Optional[Token]:
         try_match = self.match_multi(token_types)
         if not try_match:
             current_token = self.current_token()
             if current_token is not None:
                 print(error, file=sys.stderr)
-                print(f"Error: expected {token_types} but received {current_token.token_type}",
-                      file=sys.stderr)
+                print(
+                    f"Error: expected {token_types} but received {current_token.token_type}",
+                    file=sys.stderr,
+                )
                 return None
         return self.previous_token()
 
-    def module(self) -> Optional[Module]:
-        identifier: Optional[Token] = self.consume(TokenType.MODULE_CODE,
-                                                   "Expected an module code to start off a module")
-        if identifier is None: return None
+    def au(self) -> Optional[Token]:
+        number: Optional[Token] = self.consume(
+            TokenType.NUMBER, "Expected a number to indicate AUs"
+        )
+        if number is None:
+            return None
 
-        # Parse module name until the numeric AU
-        module_description_list = []
-        while (not self.match(TokenType.NUMBER)):
+        aus = [number]
+        while not self.match(TokenType.AU):
             token = self.current_token()
             self.move()
-            module_description_list.append(token)
-        module_description = flatten_identifier_tokens(module_description_list)
-        print(module_description)
+            aus.append(token)
+        aus = flatten_tokens(TokenType.AU, aus, interval="")
 
-        sys.exit(0)
-        return None
+        return aus
+
+    def module(self) -> Optional[Module]:
+        # e.g. CB1131, SC1005, SC1007
+        module_code: Optional[Token] = self.consume(
+            TokenType.MODULE_CODE, "Expected an module code to start off a module"
+        )
+        if module_code is None:
+            return None
+
+        # Parse module name until the numeric AU
+        # e.g. Introduction to Computational Thinking
+        module_description = []
+        while not self.match_no_move(TokenType.NUMBER):
+            token = self.current_token()
+            self.move()
+            module_description.append(token)
+        module_description = flatten_tokens(TokenType.IDENTIFIER, module_description)
+
+        # Parse numeric AU
+        module_au = self.au()
+
+        module = tokens_to_module(module_code, module_description, module_au)
+        # sys.exit(0)
+        return module
 
     def parse(self) -> list[Module]:
         modules: list[Module] = []
@@ -143,6 +205,7 @@ class Parser():
                 self.paragraph += 1
                 self.position = 0
         return modules
+
 
 def parse(tokens: list[list[Token]]) -> list[Module]:
     parser = Parser(tokens)

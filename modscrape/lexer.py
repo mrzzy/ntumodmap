@@ -59,6 +59,8 @@ def lex(lines: list[str]) -> list[list[Token]]:
                 sub_tokens.append(Token(TokenType.AMP, "&"))
             elif character == "'":
                 sub_tokens.append(Token(TokenType.SINGLE_QUOTE, "'"))
+            elif character == '"':
+                sub_tokens.append(Token(TokenType.DOUBLE_QUOTE, '"'))
             elif character == "/":
                 sub_tokens.append(Token(TokenType.SLASH, "/"))
             elif character == "`":
@@ -88,7 +90,7 @@ def lex(lines: list[str]) -> list[list[Token]]:
                         sub_tokens.append(Token(TokenType.IDENTIFIER, identifier))
                 current = extend
             else:
-                print("Currently not supported: ", character)
+                print("Currently not supported: ", character, ord(character))
         tokens.append(sub_tokens)
         current = 0
     return tokens

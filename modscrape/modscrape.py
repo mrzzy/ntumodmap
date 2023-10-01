@@ -89,9 +89,7 @@ if __name__ == "__main__":
     lines = filter_empty(lines)
     lines = [" ".join(line) for line in lines]
 
-    pprint(lines)
-
     tokens = lex(lines)
+    modules = parse(tokens)
 
-    # pprint(tokens)
-    parse(tokens)
+    pprint(modules)
