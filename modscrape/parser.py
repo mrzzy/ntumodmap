@@ -126,6 +126,13 @@ class Parser:
                 return True
         return False
 
+    def match_consecutive(self, token_types: list[TokenType]) -> bool:
+        while len(token_types) > 0:
+            matched = self.match(token_types[0])
+            if not matched:
+                return False
+        return True
+
     def consume(self, token_type: TokenType, error: str) -> Optional[Token]:
         try_match = self.match(token_type)
         # If it failed to match: return an error
@@ -171,6 +178,9 @@ class Parser:
 
         return aus
 
+    def mutually_exclusive(self) -> Optional[Token]:
+        return None
+
     def module(self) -> Optional[Module]:
         # e.g. CB1131, SC1005, SC1007
         module_code: Optional[Token] = self.consume(
@@ -190,6 +200,9 @@ class Parser:
 
         # Parse numeric AU
         module_au = self.au()
+
+        # Try to match for mutually exclusives
+        mutually_exclusives = self.mutually_exclusive()
 
         module = tokens_to_module(module_code, module_description, module_au)
         # sys.exit(0)
