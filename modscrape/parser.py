@@ -2,6 +2,7 @@ import sys
 from tok import Token, TokenType, flatten_tokens
 from typing import Optional, Callable, TypeVar
 from module import Module
+from pprint import pprint
 
 # I note that this may be bad practice but I dont see any other way to
 # unwrap an optional
@@ -37,16 +38,38 @@ def tokens_to_module(
     module_code: Token,
     module_title: Token,
     module_au: Token,
+    module_mutually_exclusives: Optional[list[Token]],
 ) -> Module:
     code = module_code.literal
     title = module_title.literal
     au = float(module_au.literal)
+    if module_mutually_exclusives is None:
+        mutually_exclusives = []
+    else:
+        mutually_exclusives = [tok.literal for tok in module_mutually_exclusives]
+
+    # To be filled in:
+    needs_modules = []  # pre-reqs
+    rejects_modules = []
+    rejects_courses = []
+    allowed_courses = []
+    is_bde = False
 
     assert type(code) == str
     assert type(title) == str
     assert type(au) == float
 
-    return Module(code, title, au)
+    return Module(
+        code,
+        title,
+        au,
+        mutually_exclusives,
+        needs_modules,
+        rejects_modules,
+        rejects_courses,
+        allowed_courses,
+        is_bde,
+    )
 
 
 class Parser:
@@ -126,11 +149,29 @@ class Parser:
                 return True
         return False
 
+    def match_identifier(self, identifier_literal: str) -> bool:
+        current_token = self.current_token()
+        if current_token == None:
+            return False
+        if current_token.token_type != TokenType.IDENTIFIER:
+            return False
+        if current_token.literal == identifier_literal:
+            self.move()
+            return True
+        return False
+
     def match_consecutive(self, token_types: list[TokenType]) -> bool:
         while len(token_types) > 0:
-            matched = self.match(token_types[0])
-            if not matched:
+            if not self.match(token_types[0]):
                 return False
+            token_types.pop(0)
+        return True
+
+    def match_consecutive_identifiers(self, token_literals: list[str]) -> bool:
+        while len(token_literals) > 0:
+            if not self.match_identifier(token_literals[0]):
+                return False
+            token_literals.pop(0)
         return True
 
     def consume(self, token_type: TokenType, error: str) -> Optional[Token]:
@@ -162,6 +203,25 @@ class Parser:
                 return None
         return self.previous_token()
 
+    def module_code(self) -> Optional[Token]:
+        # e.g. CB1131, SC1005, SC1007
+        module_code: Optional[Token] = self.consume(
+            TokenType.MODULE_CODE, "Expected an module code to start off a module"
+        )
+        # module_code can be (None | CB1131)
+        return module_code
+
+    def module_description(self) -> Optional[Token]:
+        # Parse module name until the numeric AU
+        # e.g. Introduction to Computational Thinking
+        module_description = []
+        while not self.match_no_move(TokenType.NUMBER):
+            token = self.current_token()
+            self.move()
+            module_description.append(token)
+        module_description = flatten_tokens(TokenType.IDENTIFIER, module_description)
+        return module_description
+
     def au(self) -> Optional[Token]:
         number: Optional[Token] = self.consume(
             TokenType.NUMBER, "Expected a number to indicate AUs"
@@ -179,32 +239,32 @@ class Parser:
         return aus
 
     def mutually_exclusive(self) -> Optional[Token]:
-        return None
+        # If it does not start with "Mutually exclusive with"
+        if not self.match_consecutive_identifiers(
+            [TokenType.MUTUALLY, TokenType.EXCLUSIVE, TokenType.WITH]
+        ):
+            return None
+        self.consume(TokenType.COLON, 'Expected colon after "Mutually Exclusive with"')
+
+        exclusive_mods = []
+        while self.match_no_move(TokenType.MODULE_CODE):
+            module_code = self.module_code()
+            exclusive_mods.append(module_code)
+            self.match(TokenType.COMMA)
+
+        return exclusive_mods
 
     def module(self) -> Optional[Module]:
-        # e.g. CB1131, SC1005, SC1007
-        module_code: Optional[Token] = self.consume(
-            TokenType.MODULE_CODE, "Expected an module code to start off a module"
-        )
-        if module_code is None:
-            return None
-
-        # Parse module name until the numeric AU
-        # e.g. Introduction to Computational Thinking
-        module_description = []
-        while not self.match_no_move(TokenType.NUMBER):
-            token = self.current_token()
-            self.move()
-            module_description.append(token)
-        module_description = flatten_tokens(TokenType.IDENTIFIER, module_description)
-
-        # Parse numeric AU
+        module_code = self.module_code()
+        module_description = self.module_description()
         module_au = self.au()
 
         # Try to match for mutually exclusives
         mutually_exclusives = self.mutually_exclusive()
 
-        module = tokens_to_module(module_code, module_description, module_au)
+        module = tokens_to_module(
+            module_code, module_description, module_au, mutually_exclusives
+        )
         # sys.exit(0)
         return module
 

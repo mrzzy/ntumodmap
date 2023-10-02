@@ -13,13 +13,15 @@ keywords: dict[str, TokenType] = {
     "Not available to all Programme with": TokenType.NOT_AVAIL_TO_PROG_WITH,
     "Not available as PE to Programme": TokenType.NOT_AVAIL_AS_PE_TO_PROG,
     "Not offered as Unrestricted Elective": TokenType.NOT_OFFERED_AS_UE,
-    "Not offered as Broadening and Deepening Elective": TokenType.NOT_OFFERED_AS_BDE
+    "Not offered as Broadening and Deepening Elective": TokenType.NOT_OFFERED_AS_BDE,
 }
+
 
 def is_keyword(text: str) -> bool:
     if keywords.get(text) != None:
         return True
     return False
+
 
 def lex(lines: list[str]) -> list[list[Token]]:
     tokens: list[list[Token]] = []
@@ -29,9 +31,7 @@ def lex(lines: list[str]) -> list[list[Token]]:
         while current < len(line):
             character = line[current]
             current += 1
-            if (character == ' ' or
-                character == '\t' or
-                character == '\n'):
+            if character == " " or character == "\t" or character == "\n":
                 continue
             elif character == ".":
                 sub_tokens.append(Token(TokenType.DOT, "."))
@@ -71,20 +71,22 @@ def lex(lines: list[str]) -> list[list[Token]]:
                 extend = current
                 while extend < len(line) and line[extend].isalnum():
                     extend += 1
-                identifier = line[current-1:extend]
+                identifier = line[current - 1 : extend]
                 # check if its a keyword, otherwise its an identifier
                 if is_keyword(identifier):
                     sub_tokens.append(Token(keywords[identifier], identifier))
                 elif identifier.isdigit():
                     sub_tokens.append(Token(TokenType.NUMBER, identifier))
                 else:
-                    if (len(identifier) == 6 and
-                        identifier[0].isalpha() and
-                        identifier[1].isalpha() and
-                        identifier[2].isdigit() and
-                        identifier[3].isdigit() and
-                        identifier[4].isdigit() and
-                        identifier[5].isdigit()):
+                    if (
+                        len(identifier) == 6
+                        and identifier[0].isalpha()
+                        and identifier[1].isalpha()
+                        and identifier[2].isdigit()
+                        and identifier[3].isdigit()
+                        and identifier[4].isdigit()
+                        and identifier[5].isdigit()
+                    ):
                         sub_tokens.append(Token(TokenType.MODULE_CODE, identifier))
                     else:
                         sub_tokens.append(Token(TokenType.IDENTIFIER, identifier))
@@ -94,6 +96,3 @@ def lex(lines: list[str]) -> list[list[Token]]:
         tokens.append(sub_tokens)
         current = 0
     return tokens
-
-
-

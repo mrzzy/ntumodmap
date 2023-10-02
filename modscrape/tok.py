@@ -15,6 +15,22 @@ class TokenType(Enum):
     COREQ = "Corequisite"
     # Some prereqs are listed as X OR Y OR Z
     OR = "OR"
+    AND = "AND"
+
+    MUTUALLY = "Mutually"
+    EXCLUSIVE = "exclusive"
+    WITH = "with"
+    NOT = "Not"
+    AVAIL = "available"
+    TO = "to"
+    PROGRAMME = "Programme"
+    AS = "as"
+    PE = "PE"
+    OFFERED = "offered"
+    UNRESTRICTED = "Unrestricted"
+    ELECTIVE = "Elective"
+    BROADENING = "Broadening"
+    DEEPENING = "Deepening"
 
     MUTUALLY_EXCLUSIVE = "Mutually exclusive with"
     NOT_AVAIL_TO_PROG = "Not available to Programme"
