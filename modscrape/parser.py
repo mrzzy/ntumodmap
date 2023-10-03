@@ -2,7 +2,6 @@ import sys
 from tok import Token, TokenType, flatten_tokens
 from typing import Optional, Callable, TypeVar
 from module import Module
-from pprint import pprint
 
 # I note that this may be bad practice but I dont see any other way to
 # unwrap an optional
