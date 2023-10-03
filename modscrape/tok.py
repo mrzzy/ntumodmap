@@ -69,9 +69,6 @@ class TokenType(Enum):
     # This specifically refers to identifiers that starts with XX1234
     MODULE_CODE = "MODULE_CODE"
 
-    def __str__(self):
-        return str(self.value)
-
 
 class Token:
     def __init__(self, token_type: TokenType, literal: str):

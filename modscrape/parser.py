@@ -63,6 +63,11 @@ def tokens_to_module(
     allowed_courses = []
     is_bde = False
 
+    pre_requisite_mods = []
+    if module_pre_requisite_mods is not None:
+        for set_of_mods in module_pre_requisite_mods:
+            pre_requisite_mods.append([tok.literal for tok in set_of_mods])
+
     assert type(code) == str
     assert type(title) == str
     assert type(au) == float
@@ -73,7 +78,7 @@ def tokens_to_module(
         au,
         mutually_exclusives,
         module_pre_requisite_year,
-        module_pre_requisite_mods,
+        pre_requisite_mods,
         rejects_modules,
         rejects_courses,
         allowed_courses,
@@ -230,7 +235,7 @@ class Parser:
             [TokenType.LPAREN, TokenType.COREQ, TokenType.RPAREN]
         ):
             module_code.literal += (
-                str(TokenType.LPAREN) + str(TokenType.COREQ) + str(TokenType.RPAREN)
+                TokenType.LPAREN.value + TokenType.COREQ.value + TokenType.RPAREN.value
             )
         # module_code can be (None | CB1131)
         return module_code
@@ -317,7 +322,7 @@ class Parser:
     def mutually_exclusive(self) -> Optional[list[Token]]:
         # If it does not start with "Mutually exclusive with"
         if not self.match_consecutive_identifiers(
-            [TokenType.MUTUALLY, TokenType.EXCLUSIVE, TokenType.WITH]
+            [TokenType.MUTUALLY.value, TokenType.EXCLUSIVE.value, TokenType.WITH.value]
         ):
             return None
         self.consume(TokenType.COLON, 'Expected colon after "Mutually Exclusive with"')
@@ -341,8 +346,6 @@ class Parser:
 
         # Try to match for mutually exclusives
         mutually_exclusives = self.mutually_exclusive()
-
-        # print(mutually_exclusives)
 
         module = tokens_to_module(
             module_code,
