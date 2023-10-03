@@ -1,3 +1,8 @@
+#
+# Token
+# Literal string representations of the Token enum
+#
+
 from enum import Enum
 
 

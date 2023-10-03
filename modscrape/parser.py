@@ -1,3 +1,11 @@
+#
+# Parser
+# Parses a list[list[Token]] into list[Module]
+# The information the modules have in them should be
+# further analyzed and turned into a graph
+# This will just produce a flat structure of [Modude]
+#
+
 import sys
 from tok import Token, TokenType, flatten_tokens
 from typing import Optional, Callable, TypeVar

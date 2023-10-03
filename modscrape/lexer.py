@@ -1,3 +1,8 @@
+#
+# Lexer
+# Turns the strings into tokens to be parsed
+#
+
 from tok import Token, TokenType
 
 keywords: dict[str, TokenType] = {
