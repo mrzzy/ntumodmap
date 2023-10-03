@@ -46,6 +46,8 @@ def tokens_to_module(
     module_title: Token,
     module_au: Token,
     module_mutually_exclusives: Optional[list[Token]],
+    module_pre_requisite_year: Optional[Token],
+    module_pre_requisite_mods: list[list[Token]],
 ) -> Module:
     code = module_code.literal
     title = module_title.literal
@@ -56,7 +58,6 @@ def tokens_to_module(
         mutually_exclusives = [tok.literal for tok in module_mutually_exclusives]
 
     # To be filled in:
-    needs_modules = []  # pre-reqs
     rejects_modules = []
     rejects_courses = []
     allowed_courses = []
@@ -71,7 +72,8 @@ def tokens_to_module(
         title,
         au,
         mutually_exclusives,
-        needs_modules,
+        module_pre_requisite_year,
+        module_pre_requisite_mods,
         rejects_modules,
         rejects_courses,
         allowed_courses,
@@ -174,6 +176,19 @@ class Parser:
             token_types.pop(0)
         return True
 
+    def match_consecutive_literals(
+        self, token_types: list[TokenType], token_literals: list[str]
+    ) -> bool:
+        assert len(token_types) == len(token_literals)
+        while len(token_types) > 0:
+            token = self.current_token()
+            if not self.match(token_types[0]):
+                return False
+            if token.literal != token_literals[0]:
+                return False
+            token_types.pop(0)
+        return True
+
     def match_consecutive_identifiers(self, token_literals: list[str]) -> bool:
         while len(token_literals) > 0:
             if not self.match_identifier(token_literals[0]):
@@ -214,7 +229,9 @@ class Parser:
         if self.match_consecutive(
             [TokenType.LPAREN, TokenType.COREQ, TokenType.RPAREN]
         ):
-            module_code.literal += TokenType.LPAREN + TokenType.COREQ + TokenType.RPAREN
+            module_code.literal += (
+                str(TokenType.LPAREN) + str(TokenType.COREQ) + str(TokenType.RPAREN)
+            )
         # module_code can be (None | CB1131)
         return module_code
 
@@ -245,6 +262,58 @@ class Parser:
 
         return aus
 
+    def _mod_or(self) -> list[Token]:
+        current_set = []
+        current_set.append(self.module_code())
+        while self.match(TokenType.AND):
+            current_set.append(self.module_code())
+        return current_set
+
+    # This returns a Token.NUMBER of year of the pre-requisite
+    def pre_requisite_year(self) -> Optional[Token]:
+        initial_position = self.position
+        if not self.match(TokenType.PREREQ):
+            return None
+        self.consume(TokenType.COLON, 'Expect colon after "Prerequisite"')
+
+        # Within the year prerequisites, there are two formats
+        # 1) Prerequisite: Year 3 standing
+        # 2) Prerequisite: Study Year 3 standing
+        # Note that I have not been able to find any nesting of years, i.e. Year 2 & Year 3 standing
+        if self.match_identifier("Year") or self.match("Study"):
+            # This moves past both Year and Study Year
+            if self.previous_token().literal == "Study":
+                self.move()
+            year = self.consume(
+                TokenType.NUMBER, "Expected a number after Year/Study Year"
+            )
+            self.consume(
+                TokenType.STANDING, f"Expected a standing after Year/Study Year {year}"
+            )
+            return year
+
+        self.set_position(initial_position)
+        return None
+
+    # This returns a list of the pre-requisite modules
+    def pre_requisite_mods(self) -> Optional[list[Token]]:
+        initial_position = self.position
+        if not self.match(TokenType.PREREQ):
+            return None
+        self.consume(TokenType.COLON, 'Expect colon after "Prerequisite"')
+
+        # This can either be a module prequisite or a year pre-requisite
+        if self.match_no_move(TokenType.MODULE_CODE):
+            prereq_mods = []
+            # Append the first minimally required mods
+            prereq_mods.append(self._mod_or())
+            while self.match(TokenType.OR):
+                prereq_mods.append(self._mod_or())
+            return prereq_mods
+
+        self.set_position(initial_position)
+        return None
+
     def mutually_exclusive(self) -> Optional[list[Token]]:
         # If it does not start with "Mutually exclusive with"
         if not self.match_consecutive_identifiers(
@@ -259,6 +328,7 @@ class Parser:
             exclusive_mods.append(module_code)
             self.match(TokenType.COMMA)
 
+        print(exclusive_mods)
         return exclusive_mods
 
     def module(self) -> Optional[Module]:
@@ -266,13 +336,28 @@ class Parser:
         module_description = self.module_description()
         module_au = self.au()
 
+        # Try to match for prerequisites, note that there are two choices here
+        pre_requisites_year = self.pre_requisite_year()
+        pre_requisites_mods = self.pre_requisite_mods()
+
+        if pre_requisites_year is not None:
+            print(pre_requisites_year)
+        if pre_requisites_mods is not None:
+            print(pre_requisites_mods)
+
         # Try to match for mutually exclusives
         mutually_exclusives = self.mutually_exclusive()
 
+        # print(mutually_exclusives)
+
         module = tokens_to_module(
-            module_code, module_description, module_au, mutually_exclusives
+            module_code,
+            module_description,
+            module_au,
+            mutually_exclusives,
+            pre_requisites_year,
+            pre_requisites_mods,
         )
-        # sys.exit(0)
         return module
 
     def parse(self) -> list[Module]:

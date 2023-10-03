@@ -20,7 +20,7 @@ class TokenType(Enum):
     COREQ = "Corequisite"
     # Some prereqs are listed as X OR Y OR Z
     OR = "OR"
-    AND = "AND"
+    AND = "&"
 
     MUTUALLY = "Mutually"
     EXCLUSIVE = "exclusive"
@@ -36,6 +36,7 @@ class TokenType(Enum):
     ELECTIVE = "Elective"
     BROADENING = "Broadening"
     DEEPENING = "Deepening"
+    STANDING = "Standing"
 
     MUTUALLY_EXCLUSIVE = "Mutually exclusive with"
     NOT_AVAIL_TO_PROG = "Not available to Programme"
@@ -67,6 +68,9 @@ class TokenType(Enum):
 
     # This specifically refers to identifiers that starts with XX1234
     MODULE_CODE = "MODULE_CODE"
+
+    def __str__(self):
+        return str(self.value)
 
 
 class Token:
