@@ -199,10 +199,8 @@ class Parser:
         if not try_match:
             current_token = self.current_token()
             if current_token is not None:
-                print(error, file=sys.stderr)
-                print(
-                    f"Error: expected {token_types} but received {current_token.token_type}",
-                    file=sys.stderr,
+                raise Exception(
+                    f"Error: expected {token_type} but received {current_token.token_type}",
                 )
                 return None
         return self.previous_token()
