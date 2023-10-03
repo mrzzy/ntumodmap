@@ -328,7 +328,6 @@ class Parser:
             exclusive_mods.append(module_code)
             self.match(TokenType.COMMA)
 
-        print(exclusive_mods)
         return exclusive_mods
 
     def module(self) -> Optional[Module]:
@@ -339,11 +338,6 @@ class Parser:
         # Try to match for prerequisites, note that there are two choices here
         pre_requisites_year = self.pre_requisite_year()
         pre_requisites_mods = self.pre_requisite_mods()
-
-        if pre_requisites_year is not None:
-            print(pre_requisites_year)
-        if pre_requisites_mods is not None:
-            print(pre_requisites_mods)
 
         # Try to match for mutually exclusives
         mutually_exclusives = self.mutually_exclusive()
