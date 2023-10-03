@@ -22,12 +22,6 @@ keywords: dict[str, TokenType] = {
 }
 
 
-def is_keyword(text: str) -> bool:
-    if keywords.get(text) != None:
-        return True
-    return False
-
-
 def lex(lines: list[str]) -> list[list[Token]]:
     tokens: list[list[Token]] = []
     current: int = 0
@@ -78,7 +72,7 @@ def lex(lines: list[str]) -> list[list[Token]]:
                     extend += 1
                 identifier = line[current - 1 : extend]
                 # check if its a keyword, otherwise its an identifier
-                if is_keyword(identifier):
+                if identifier in keywords:
                     sub_tokens.append(Token(keywords[identifier], identifier))
                 elif identifier.isdigit():
                     sub_tokens.append(Token(TokenType.NUMBER, identifier))
