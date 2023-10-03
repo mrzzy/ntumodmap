@@ -242,7 +242,7 @@ class Parser:
 
         return aus
 
-    def mutually_exclusive(self) -> Optional[Token]:
+    def mutually_exclusive(self) -> Optional[list[Token]]:
         # If it does not start with "Mutually exclusive with"
         if not self.match_consecutive_identifiers(
             [TokenType.MUTUALLY, TokenType.EXCLUSIVE, TokenType.WITH]
