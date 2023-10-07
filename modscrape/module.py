@@ -1,4 +1,4 @@
-from typing import FrozenSet
+from typing import FrozenSet, Optional
 from dataclasses import dataclass
 
 
@@ -9,7 +9,8 @@ class Module:
     title: str
     au: float
     mutually_exclusives: list[str]
-    needs_modules: list[str]
+    needs_year: Optional[int]
+    needs_modules: list[list[str]]
     rejects_modules: FrozenSet[str]
     rejects_courses: FrozenSet[str]
     allowed_courses: FrozenSet[str]
