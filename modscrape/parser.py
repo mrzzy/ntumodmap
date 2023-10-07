@@ -264,7 +264,7 @@ class Parser:
 
         return aus
 
-    def _mod_or(self) -> list[Token]:
+    def _mod_and(self) -> list[Token]:
         current_set = []
         current_set.append(self.module_code())
         while self.match(TokenType.AND):
@@ -308,9 +308,9 @@ class Parser:
         if self.match_no_move(TokenType.MODULE_CODE):
             prereq_mods = []
             # Append the first minimally required mods
-            prereq_mods.append(self._mod_or())
+            prereq_mods.append(self._mod_and())
             while self.match(TokenType.OR):
-                prereq_mods.append(self._mod_or())
+                prereq_mods.append(self._mod_and())
             return prereq_mods
 
         self.set_position(initial_position)
