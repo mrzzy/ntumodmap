@@ -175,30 +175,27 @@ class Parser:
         return False
 
     def match_consecutive(self, token_types: list[TokenType]) -> bool:
-        while len(token_types) > 0:
-            if not self.match(token_types[0]):
+        for token_type in token_types:
+            if not self.match(token_type):
                 return False
-            token_types.pop(0)
         return True
 
     def match_consecutive_literals(
         self, token_types: list[TokenType], token_literals: list[str]
     ) -> bool:
         assert len(token_types) == len(token_literals)
-        while len(token_types) > 0:
+        for token_type in token_types:
             token = self.current_token()
-            if not self.match(token_types[0]):
+            if not self.match(token_type):
                 return False
-            if token.literal != token_literals[0]:
+            if token.literal != token_type.literal:
                 return False
-            token_types.pop(0)
         return True
 
     def match_consecutive_identifiers(self, token_literals: list[str]) -> bool:
-        while len(token_literals) > 0:
-            if not self.match_identifier(token_literals[0]):
+        for token_literal in token_literals:
+            if not self.match_identifier(token_literal):
                 return False
-            token_literals.pop(0)
         return True
 
     def consume(self, token_type: TokenType, error: str) -> Optional[Token]:
