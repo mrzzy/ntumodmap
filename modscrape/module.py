@@ -33,11 +33,11 @@ class Module:
     code: ModuleCode
     title: str
     au: float
-    mutually_exclusives: list[str]
+    mutually_exclusives: list[ModuleCode]
     needs_year: Optional[int]
-    needs_modules: list[list[str]]
-    rejects_modules: FrozenSet[str]
-    rejects_courses: FrozenSet[str]
-    allowed_courses: FrozenSet[str]
+    needs_modules: list[list[ModuleCode]]
+    rejects_modules: FrozenSet[ModuleCode]
+    rejects_courses: FrozenSet[Course]
+    allowed_courses: FrozenSet[Course]
     is_bde: bool
     is_pass_fail: bool
