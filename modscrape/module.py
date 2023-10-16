@@ -18,11 +18,10 @@ class ModuleCode:
 @dataclass
 class Course:
     course: str
-    # only one of direct_entry and non_direct_entry can be true
-    # but both can be false if not specified
     # these are noted by "(Direct Entry)" or "(Non Direct Entry)"
-    is_direct_entry: bool
-    is_non_direct_entry: bool
+    # when we refer to the course, this tells us
+    # if a direct_entry or non direct entry to the course matters
+    is_direct_entry: Optional[bool]
     # these states from what year
     # e.g. "EEEC(2018-onwards)"
     from_year: int
