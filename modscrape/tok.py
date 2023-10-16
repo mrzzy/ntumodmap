@@ -11,7 +11,8 @@ class TokenType(Enum):
     AU = "AU"
 
     # Grade Type
-    GRADE_TYPE = "Grade Type"
+    GRADE = "Grade"
+    TYPE = "Type"
     PASS = "Pass"
     FAIL = "Fail"
 

@@ -161,10 +161,11 @@ class Parser:
         if current_token == None:
             return False
         for token_type in token_types:
-            if current_token.token_type == token_type:
-                self.move()
-                return True
-        return False
+            if current_token.token_type != token_type:
+                return False
+            self.move()
+            current_token = self.current_token()
+        return True
 
     def match_identifier(self, identifier_literal: str) -> bool:
         current_token = self.current_token()
@@ -239,6 +240,20 @@ class Parser:
             )
         # module_code can be (None | CB1131)
         return module_code
+
+    def pass_fail(self) -> Optional[Token]:
+        initial_position = self.position
+        found = self.match_multi([TokenType.GRADE, TokenType.TYPE])
+        if found:
+            self.consume(TokenType.COLON, "Expected ':' after 'Grade Type'")
+            self.consume(TokenType.PASS, "Expected 'Pass' after 'Grade Type:'")
+            self.consume(TokenType.SLASH, "Expected '/' after 'Grade Type: Pass'")
+            self.consume(
+                TokenType.FAIL, "Expected 'Fail' after 'Grade Type: Pass/Fail'"
+            )
+            return True
+        self.set_position(initial_position)
+        return False
 
     def module_description(self) -> Optional[Token]:
         # Parse module name until the numeric AU
@@ -339,6 +354,8 @@ class Parser:
         module_code = self.module_code()
         module_description = self.module_description()
         module_au = self.au()
+        pass_fail = self.pass_fail()
+        print(pass_fail)
 
         # Try to match for prerequisites, note that there are two choices here
         pre_requisites_year = self.pre_requisite_year()
@@ -355,7 +372,7 @@ class Parser:
             mutually_exclusives,
             pre_requisites_year,
             pre_requisites_mods,
-            False,  # module pass fail
+            pass_fail,  # module pass fail
         )
 
         return module
