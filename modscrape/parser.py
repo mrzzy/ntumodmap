@@ -9,7 +9,7 @@
 import sys
 from tok import Token, TokenType, flatten_tokens
 from typing import Optional, Callable, TypeVar
-from module import Module
+from module import Module, ModuleCode
 
 # I note that this may be bad practice but I dont see any other way to
 # unwrap an optional
@@ -48,8 +48,10 @@ def tokens_to_module(
     module_mutually_exclusives: Optional[list[Token]],
     module_pre_requisite_year: Optional[Token],
     module_pre_requisite_mods: list[list[Token]],
+    module_pass_fail: bool,
 ) -> Module:
-    code = module_code.literal
+    code = ModuleCode(module_code.literal)
+
     title = module_title.literal
     au = float(module_au.literal)
     if module_mutually_exclusives is None:
@@ -68,7 +70,7 @@ def tokens_to_module(
         for set_of_mods in module_pre_requisite_mods:
             pre_requisite_mods.append([tok.literal for tok in set_of_mods])
 
-    assert type(code) == str
+    assert type(code) == ModuleCode
     assert type(title) == str
     assert type(au) == float
 
@@ -83,6 +85,7 @@ def tokens_to_module(
         rejects_courses,
         allowed_courses,
         is_bde,
+        module_pass_fail,
     )
 
 
@@ -158,10 +161,11 @@ class Parser:
         if current_token == None:
             return False
         for token_type in token_types:
-            if current_token.token_type == token_type:
-                self.move()
-                return True
-        return False
+            if current_token.token_type != token_type:
+                return False
+            self.move()
+            current_token = self.current_token()
+        return True
 
     def match_identifier(self, identifier_literal: str) -> bool:
         current_token = self.current_token()
@@ -236,6 +240,20 @@ class Parser:
             )
         # module_code can be (None | CB1131)
         return module_code
+
+    def pass_fail(self) -> Optional[Token]:
+        initial_position = self.position
+        found = self.match_multi([TokenType.GRADE, TokenType.TYPE])
+        if found:
+            self.consume(TokenType.COLON, "Expected ':' after 'Grade Type'")
+            self.consume(TokenType.PASS, "Expected 'Pass' after 'Grade Type:'")
+            self.consume(TokenType.SLASH, "Expected '/' after 'Grade Type: Pass'")
+            self.consume(
+                TokenType.FAIL, "Expected 'Fail' after 'Grade Type: Pass/Fail'"
+            )
+            return True
+        self.set_position(initial_position)
+        return False
 
     def module_description(self) -> Optional[Token]:
         # Parse module name until the numeric AU
@@ -336,6 +354,8 @@ class Parser:
         module_code = self.module_code()
         module_description = self.module_description()
         module_au = self.au()
+        pass_fail = self.pass_fail()
+        print(pass_fail)
 
         # Try to match for prerequisites, note that there are two choices here
         pre_requisites_year = self.pre_requisite_year()
@@ -344,6 +364,7 @@ class Parser:
         # Try to match for mutually exclusives
         mutually_exclusives = self.mutually_exclusive()
 
+        # TODO: Parse pass/fail as well
         module = tokens_to_module(
             module_code,
             module_description,
@@ -351,7 +372,9 @@ class Parser:
             mutually_exclusives,
             pre_requisites_year,
             pre_requisites_mods,
+            pass_fail,  # module pass fail
         )
+
         return module
 
     def parse(self) -> list[Module]:

@@ -7,7 +7,8 @@ from tok import Token, TokenType
 
 keywords: dict[str, TokenType] = {
     "AU": TokenType.AU,
-    "Grade Type": TokenType.GRADE_TYPE,
+    "Grade": TokenType.GRADE,
+    "Type": TokenType.TYPE,
     "Pass": TokenType.PASS,
     "Fail": TokenType.FAIL,
     "Prerequisite": TokenType.PREREQ,
