@@ -9,7 +9,7 @@
 import sys
 from tok import Token, TokenType, flatten_tokens
 from typing import Optional, Callable, TypeVar
-from module import Module
+from module import Module, ModuleCode
 
 # I note that this may be bad practice but I dont see any other way to
 # unwrap an optional
@@ -48,8 +48,10 @@ def tokens_to_module(
     module_mutually_exclusives: Optional[list[Token]],
     module_pre_requisite_year: Optional[Token],
     module_pre_requisite_mods: list[list[Token]],
+    module_pass_fail: bool,
 ) -> Module:
-    code = module_code.literal
+    code = ModuleCode(module_code.literal)
+
     title = module_title.literal
     au = float(module_au.literal)
     if module_mutually_exclusives is None:
@@ -68,7 +70,7 @@ def tokens_to_module(
         for set_of_mods in module_pre_requisite_mods:
             pre_requisite_mods.append([tok.literal for tok in set_of_mods])
 
-    assert type(code) == str
+    assert type(code) == ModuleCode
     assert type(title) == str
     assert type(au) == float
 
@@ -83,6 +85,7 @@ def tokens_to_module(
         rejects_courses,
         allowed_courses,
         is_bde,
+        module_pass_fail,
     )
 
 
@@ -344,6 +347,7 @@ class Parser:
         # Try to match for mutually exclusives
         mutually_exclusives = self.mutually_exclusive()
 
+        # TODO: Parse pass/fail as well
         module = tokens_to_module(
             module_code,
             module_description,
@@ -351,7 +355,9 @@ class Parser:
             mutually_exclusives,
             pre_requisites_year,
             pre_requisites_mods,
+            False,  # module pass fail
         )
+
         return module
 
     def parse(self) -> list[Module]:
