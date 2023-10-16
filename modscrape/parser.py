@@ -355,7 +355,6 @@ class Parser:
         module_description = self.module_description()
         module_au = self.au()
         pass_fail = self.pass_fail()
-        print(pass_fail)
 
         # Try to match for prerequisites, note that there are two choices here
         pre_requisites_year = self.pre_requisite_year()
@@ -364,7 +363,6 @@ class Parser:
         # Try to match for mutually exclusives
         mutually_exclusives = self.mutually_exclusive()
 
-        # TODO: Parse pass/fail as well
         module = tokens_to_module(
             module_code,
             module_description,
