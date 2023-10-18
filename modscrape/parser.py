@@ -7,6 +7,7 @@
 #
 
 import sys
+from itertools import takewhile
 from tok import Token, TokenType, flatten_tokens
 from typing import Optional, Callable, TypeVar
 from module import Module, ModuleCode
@@ -42,22 +43,16 @@ def contextual(
 
 
 def tokens_to_module(
-    module_code: Token,
+    module_code: ModuleCode,
     module_title: Token,
     module_au: Token,
-    module_mutually_exclusives: Optional[list[Token]],
+    module_mutually_exclusives: Optional[list[ModuleCode]],
     module_pre_requisite_year: Optional[Token],
-    module_pre_requisite_mods: list[list[Token]],
+    module_pre_requisite_mods: list[list[ModuleCode]],
     module_pass_fail: bool,
 ) -> Module:
-    code = ModuleCode(module_code.literal)
-
     title = module_title.literal
     au = float(module_au.literal)
-    if module_mutually_exclusives is None:
-        mutually_exclusives = []
-    else:
-        mutually_exclusives = [tok.literal for tok in module_mutually_exclusives]
 
     # To be filled in:
     rejects_modules = []
@@ -65,22 +60,16 @@ def tokens_to_module(
     allowed_courses = []
     is_bde = False
 
-    pre_requisite_mods = []
-    if module_pre_requisite_mods is not None:
-        for set_of_mods in module_pre_requisite_mods:
-            pre_requisite_mods.append([tok.literal for tok in set_of_mods])
-
-    assert type(code) == ModuleCode
     assert type(title) == str
     assert type(au) == float
 
     return Module(
-        code,
+        module_code,
         title,
         au,
-        mutually_exclusives,
+        module_mutually_exclusives,
         module_pre_requisite_year,
-        pre_requisite_mods,
+        module_pre_requisite_mods,
         rejects_modules,
         rejects_courses,
         allowed_courses,
@@ -226,19 +215,26 @@ class Parser:
                 return None
         return self.previous_token()
 
-    def module_code(self) -> Optional[Token]:
+    def module_code(self) -> Optional[Module]:
         # e.g. CB1131, SC1005, SC1007
-        module_code: Optional[Token] = self.consume(
+        module_code_token: Optional[Token] = self.consume(
             TokenType.MODULE_CODE, "Expected an module code to start off a module"
         )
-        # If the module code is e.g. 'MH1812(Corequisite)'', this will catch that and parse it in
-        if self.match_consecutive(
-            [TokenType.LPAREN, TokenType.COREQ, TokenType.RPAREN]
-        ):
-            module_code.literal += (
-                TokenType.LPAREN.value + TokenType.COREQ.value + TokenType.RPAREN.value
-            )
-        # module_code can be (None | CB1131)
+        module_code = ModuleCode(module_code_token.literal)
+        # If the module code is e.g. 'MH1812(Corequisite)', this will catch that and parse it in
+        if self.match(TokenType.LPAREN):
+            if self.match_consecutive([TokenType.COREQ, TokenType.RPAREN]):
+                module_code.is_corequisite = True
+            else:
+                self.move()
+                misc = []
+                while not self.match(TokenType.RPAREN):
+                    if self.previous_token().token_type != TokenType.LPAREN:
+                        misc.append(self.previous_token().literal)
+                    self.move()
+                module_code.misc = " ".join(misc)
+
+        # module_code can be (None | ModuleCode(CB1131))
         return module_code
 
     def pass_fail(self) -> Optional[Token]:
@@ -384,6 +380,7 @@ class Parser:
                 # Reset the indices and move on to the next module
                 self.paragraph += 1
                 self.position = 0
+        print(modules)
         return modules
 
 
