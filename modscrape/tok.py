@@ -37,7 +37,7 @@ class TokenType(Enum):
     ELECTIVE = "Elective"
     BROADENING = "Broadening"
     DEEPENING = "Deepening"
-    STANDING = "Standing"
+    STANDING = "standing"
 
     MUTUALLY_EXCLUSIVE = "Mutually exclusive with"
     NOT_AVAIL_TO_PROG = "Not available to Programme"
@@ -60,6 +60,7 @@ class TokenType(Enum):
     AMP = "&"
     SINGLE_QUOTE = "'"
     DOUBLE_QUOTE = '"'
+    PLUS = "+"
     SLASH = "/"
     BACKTICK = "`"
     QUESTION_MARK = "?"

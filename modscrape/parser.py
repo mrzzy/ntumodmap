@@ -7,6 +7,7 @@
 #
 
 import sys
+from itertools import takewhile
 from tok import Token, TokenType, flatten_tokens
 from typing import Optional, Callable, TypeVar
 from module import Module, ModuleCode
@@ -225,10 +226,13 @@ class Parser:
             if self.match_consecutive([TokenType.COREQ, TokenType.RPAREN]):
                 module_code.is_corequisite = True
             else:
-                misc = ""
+                self.move()
+                misc = []
                 while not self.match(TokenType.RPAREN):
-                    misc += self.previous_token().literal
-                module_code.misc = misc
+                    if self.previous_token().token_type != TokenType.LPAREN:
+                        misc.append(self.previous_token().literal)
+                    self.move()
+                module_code.misc = " ".join(misc)
 
         # module_code can be (None | ModuleCode(CB1131))
         return module_code
@@ -376,6 +380,7 @@ class Parser:
                 # Reset the indices and move on to the next module
                 self.paragraph += 1
                 self.position = 0
+        print(modules)
         return modules
 
 
