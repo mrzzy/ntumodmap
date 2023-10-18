@@ -20,6 +20,7 @@ keywords: dict[str, TokenType] = {
     "Not available as PE to Programme": TokenType.NOT_AVAIL_AS_PE_TO_PROG,
     "Not offered as Unrestricted Elective": TokenType.NOT_OFFERED_AS_UE,
     "Not offered as Broadening and Deepening Elective": TokenType.NOT_OFFERED_AS_BDE,
+    "standing": TokenType.STANDING,
 }
 
 
@@ -63,6 +64,8 @@ def lex(lines: list[str]) -> list[list[Token]]:
                 sub_tokens.append(Token(TokenType.DOUBLE_QUOTE, '"'))
             elif character == "/":
                 sub_tokens.append(Token(TokenType.SLASH, "/"))
+            elif character == "+":
+                sub_tokens.append(Token(TokenType.PLUS, "+"))
             elif character == "`":
                 sub_tokens.append(Token(TokenType.BACKTICK, "`"))
             elif character == "?":
