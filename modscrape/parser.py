@@ -6,11 +6,10 @@
 # This will just produce a flat structure of [Modude]
 #
 
-import sys
-from itertools import takewhile
-from tok import Token, TokenType, flatten_tokens
-from typing import Optional, Callable, TypeVar
+from typing import Callable, Optional, TypeVar
+
 from module import Module, ModuleCode
+from tok import Token, TokenType, flatten_tokens
 
 # I note that this may be bad practice but I dont see any other way to
 # unwrap an optional
@@ -60,8 +59,7 @@ def tokens_to_module(
     allowed_courses = []
     is_bde = False
 
-    assert type(title) == str
-    assert type(au) == float
+    assert isinstance(title, str) and isinstance(au, float)
 
     return Module(
         module_code,
@@ -124,7 +122,7 @@ class Parser:
     # Takes in a TokenType, checks if the current token is of the same TokenType
     def match_no_move(self, token_type: TokenType) -> bool:
         current_token = self.current_token()
-        if current_token == None:
+        if current_token is None:
             return False
         if current_token.token_type == token_type:
             return True
@@ -135,7 +133,7 @@ class Parser:
     # it will move the position up
     def match(self, token_type: TokenType) -> bool:
         current_token = self.current_token()
-        if current_token == None:
+        if current_token is None:
             return False
         if current_token.token_type == token_type:
             self.move()
@@ -147,7 +145,7 @@ class Parser:
     # it will move the position up
     def match_multi(self, token_types: list[TokenType]) -> bool:
         current_token = self.current_token()
-        if current_token == None:
+        if current_token is None:
             return False
         for token_type in token_types:
             if current_token.token_type != token_type:
@@ -158,7 +156,7 @@ class Parser:
 
     def match_identifier(self, identifier_literal: str) -> bool:
         current_token = self.current_token()
-        if current_token == None:
+        if current_token is None:
             return False
         if current_token.token_type != TokenType.IDENTIFIER:
             return False
@@ -210,7 +208,7 @@ class Parser:
             current_token = self.current_token()
             if current_token is not None:
                 raise Exception(
-                    f"Error: expected {token_type} but received {current_token.token_type}",
+                    f"Error: expected {token_types} but received {current_token.token_type}",
                 )
                 return None
         return self.previous_token()
@@ -318,7 +316,7 @@ class Parser:
             return None
         self.consume(TokenType.COLON, 'Expect colon after "Prerequisite"')
 
-        # This can either be a module prequisite or a year pre-requisite
+        # This can either be a module prerequisite or a year pre-requisite
         if self.match_no_move(TokenType.MODULE_CODE):
             prereq_mods = []
             # Append the first minimally required mods

@@ -1,0 +1,7 @@
+#
+# Modmap
+# Python Project config
+#
+
+[tool.isort]
+profile = "black"
