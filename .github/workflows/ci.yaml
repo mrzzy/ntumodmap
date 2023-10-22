@@ -1,0 +1,34 @@
+#
+# Modscrape
+# Github Actions
+# CI Pipeline for Modscrape
+#
+
+name: Lint, Test Modscrape
+on:
+  push: {}
+env:
+  PYTHON_VERSION: "3.10"
+jobs:
+  lint:
+    name: Lint Modscrape
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "${{ env.PYTHON_VERSION }}"
+      - uses: pre-commit/action@v3.0.0
+  test:
+    name: Test Modscrape
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "${{ env.PYTHON_VERSION }}"
+      - name: Install Pip dependencies
+        run: pip install -r modscrape/requirements-dev.txt
+      - name: Run Tests
+        working-directory: modscrape
+        run: pytest
