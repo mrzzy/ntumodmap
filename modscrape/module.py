@@ -1,5 +1,5 @@
-from typing import FrozenSet, Optional
 from dataclasses import dataclass
+from typing import FrozenSet, Optional
 
 
 @dataclass

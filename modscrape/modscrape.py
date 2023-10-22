@@ -3,13 +3,15 @@
 # Modscrape Module Scraper
 #
 
-from typing import Dict, cast
-import requests
-from bs4 import BeautifulSoup, Tag
 from itertools import chain
-from lexer import lex
 from parser import parse
 from pprint import pprint
+from typing import Dict, cast
+
+import requests
+from bs4 import BeautifulSoup, Tag
+
+from lexer import lex
 
 COURSE_CONTENT_URL = "https://wis.ntu.edu.sg/webexe/owa/aus_subj_cont"
 
