@@ -6,9 +6,9 @@
 # This will just produce a flat structure of [Modude]
 #
 
-from typing import Callable, Optional, TypeVar
+from typing import Callable, FrozenSet, Optional, TypeVar
 
-from module import Module, ModuleCode
+from module import Course, Module, ModuleCode
 from tok import Token, TokenType, flatten_tokens
 
 # I note that this may be bad practice but I dont see any other way to
@@ -54,9 +54,9 @@ def tokens_to_module(
     au = float(module_au.literal)
 
     # TODO: To be filled in
-    rejects_modules = frozenset()
-    rejects_courses = frozenset()
-    allowed_courses = frozenset()
+    rejects_modules: FrozenSet[ModuleCode] = frozenset()
+    rejects_courses: FrozenSet[Course] = frozenset()
+    allowed_courses: FrozenSet[Course] = frozenset()
     is_bde = False
 
     assert isinstance(title, str) and isinstance(au, float)
