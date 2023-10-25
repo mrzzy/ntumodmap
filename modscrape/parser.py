@@ -53,10 +53,10 @@ def tokens_to_module(
     title = module_title.literal
     au = float(module_au.literal)
 
-    # To be filled in:
-    rejects_modules = []
-    rejects_courses = []
-    allowed_courses = []
+    # TODO: To be filled in
+    rejects_modules = frozenset()
+    rejects_courses = frozenset()
+    allowed_courses = frozenset()
     is_bde = False
 
     assert isinstance(title, str) and isinstance(au, float)
