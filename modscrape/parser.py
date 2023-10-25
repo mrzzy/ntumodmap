@@ -35,7 +35,7 @@ def contextual(
         if res is None:
             # Sets the position back to where it started
             parser.set_position(begin)
-            return
+            return None
         return res
 
     return contextual_wrapper(parser)
