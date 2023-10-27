@@ -45,7 +45,7 @@ def tokens_to_module(
     module_code: ModuleCode,
     module_title: Token,
     module_au: Token,
-    module_mutually_exclusives: Optional[list[ModuleCode]],
+    module_mutually_exclusives: list[ModuleCode],
     module_pre_requisite_year: Optional[Token],
     module_pre_requisite_mods: list[list[ModuleCode]],
     module_pass_fail: bool,
@@ -66,7 +66,12 @@ def tokens_to_module(
         title,
         au,
         module_mutually_exclusives,
-        module_pre_requisite_year,
+        # parse needs_year as int if set
+        (
+            int(module_pre_requisite_year.literal)
+            if module_pre_requisite_year is not None
+            else None
+        ),
         module_pre_requisite_mods,
         rejects_modules,
         rejects_courses,
