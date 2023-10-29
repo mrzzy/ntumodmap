@@ -94,7 +94,7 @@ class Parser:
     def set_position(self, position):
         self.position = position
 
-    def current_token(self) -> Optional[Token]:
+    def current_token(self) -> Token:
         return self.tokens[self.paragraph][self.position]
 
     def previous_token(self) -> Optional[Token]:
@@ -127,8 +127,6 @@ class Parser:
     # Takes in a TokenType, checks if the current token is of the same TokenType
     def match_no_move(self, token_type: TokenType) -> bool:
         current_token = self.current_token()
-        if current_token is None:
-            return False
         if current_token.token_type == token_type:
             return True
         # All other cases are false
@@ -138,8 +136,6 @@ class Parser:
     # it will move the position up
     def match(self, token_type: TokenType) -> bool:
         current_token = self.current_token()
-        if current_token is None:
-            return False
         if current_token.token_type == token_type:
             self.move()
             return True
@@ -150,10 +146,8 @@ class Parser:
     # it will move the position up
     def match_multi(self, token_types: list[TokenType]) -> bool:
         current_token = self.current_token()
-        if current_token is None:
-            return False
         for token_type in token_types:
-            if current_token.token_type != token_type:
+            if cast(Token, current_token).token_type != token_type:
                 return False
             self.move()
             current_token = self.current_token()
@@ -161,8 +155,6 @@ class Parser:
 
     def match_identifier(self, identifier_literal: str) -> bool:
         current_token = self.current_token()
-        if current_token is None:
-            return False
         if current_token.token_type != TokenType.IDENTIFIER:
             return False
         if current_token.literal == identifier_literal:
@@ -199,10 +191,9 @@ class Parser:
         # If it failed to match: return an error
         if not try_match:
             current_token = self.current_token()
-            if current_token is not None:
-                raise Exception(
-                    f"Error: expected {token_type} but received {current_token.token_type}",
-                )
+            raise Exception(
+                f"Error: expected {token_type} but received {current_token.token_type}",
+            )
         return self.previous_token()
 
     def consume_multi(
@@ -211,11 +202,10 @@ class Parser:
         try_match = self.match_multi(token_types)
         if not try_match:
             current_token = self.current_token()
-            if current_token is not None:
-                raise Exception(
-                    f"Error: expected {token_types} but received {current_token.token_type}",
-                )
-                return None
+            raise Exception(
+                f"Error: expected {token_types} but received {current_token.token_type}",
+            )
+            return None
         return self.previous_token()
 
     def module_code(self) -> Optional[Module]:
