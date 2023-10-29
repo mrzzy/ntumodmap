@@ -6,7 +6,7 @@
 # This will just produce a flat structure of [Modude]
 #
 
-from typing import Callable, FrozenSet, Optional, TypeVar
+from typing import Callable, FrozenSet, Optional, TypeVar, cast
 
 from module import Course, Module, ModuleCode
 from tok import Token, TokenType, flatten_tokens
@@ -180,11 +180,11 @@ class Parser:
         self, token_types: list[TokenType], token_literals: list[str]
     ) -> bool:
         assert len(token_types) == len(token_literals)
-        for token_type in token_types:
+        for token_type, token_literal in zip(token_types, token_literals):
             token = self.current_token()
             if not self.match(token_type):
                 return False
-            if token.literal != token_type.literal:
+            if cast(Token, token).literal != token_literal:
                 return False
         return True
 
