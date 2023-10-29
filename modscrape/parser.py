@@ -254,8 +254,7 @@ class Parser:
             token = self.current_token()
             self.move()
             module_description.append(token)
-        module_description = flatten_tokens(TokenType.IDENTIFIER, module_description)
-        return module_description
+        return flatten_tokens(TokenType.IDENTIFIER, module_description)
 
     def au(self) -> Token:
         number = self.consume(TokenType.NUMBER, "Expected a number to indicate AUs")
@@ -265,9 +264,8 @@ class Parser:
             token = self.current_token()
             self.move()
             aus.append(token)
-        aus = flatten_tokens(TokenType.AU, aus, interval="")
 
-        return aus
+        return flatten_tokens(TokenType.AU, aus, interval="")
 
     def _mod_and(self) -> list[Token]:
         current_set = []
