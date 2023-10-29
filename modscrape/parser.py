@@ -287,7 +287,7 @@ class Parser:
         # Note that I have not been able to find any nesting of years, i.e. Year 2 & Year 3 standing
         if self.match_identifier("Year") or self.match_identifier("Study"):
             # This moves past both Year and Study Year
-            previous_token = self.previous_token
+            previous_token = self.previous_token()
             if previous_token is not None and previous_token.literal == "Study":
                 self.move()
             year = self.consume(
