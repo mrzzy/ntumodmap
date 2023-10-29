@@ -207,7 +207,7 @@ class Parser:
         # desired tokens was just matched, so retrieving previous should not return None
         return cast(Token, self.previous_token())
 
-    def module_code(self) -> Optional[ModuleCode]:
+    def module_code(self) -> ModuleCode:
         # e.g. CB1131, SC1005, SC1007
         module_code_token = self.consume(
             TokenType.MODULE_CODE, "Expected an module code to start off a module"
@@ -246,7 +246,7 @@ class Parser:
         self.set_position(initial_position)
         return False
 
-    def module_description(self) -> Optional[Token]:
+    def module_description(self) -> Token:
         # Parse module name until the numeric AU
         # e.g. Introduction to Computational Thinking
         module_description = []
