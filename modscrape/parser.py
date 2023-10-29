@@ -208,7 +208,7 @@ class Parser:
             return None
         return self.previous_token()
 
-    def module_code(self) -> Optional[Module]:
+    def module_code(self) -> Optional[ModuleCode]:
         # e.g. CB1131, SC1005, SC1007
         module_code_token: Optional[Token] = self.consume(
             TokenType.MODULE_CODE, "Expected an module code to start off a module"
