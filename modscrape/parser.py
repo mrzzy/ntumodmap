@@ -302,10 +302,10 @@ class Parser:
         return None
 
     # This returns a list of the pre-requisite modules
-    def pre_requisite_mods(self) -> Optional[list[Token]]:
+    def pre_requisite_mods(self) -> list[list[ModuleCode]]:
         initial_position = self.position
         if not self.match(TokenType.PREREQ):
-            return None
+            return []
         self.consume(TokenType.COLON, 'Expect colon after "Prerequisite"')
 
         # This can either be a module prerequisite or a year pre-requisite
@@ -318,14 +318,14 @@ class Parser:
             return prereq_mods
 
         self.set_position(initial_position)
-        return None
+        return []
 
-    def mutually_exclusive(self) -> Optional[list[Token]]:
+    def mutually_exclusive(self) -> list[ModuleCode]:
         # If it does not start with "Mutually exclusive with"
         if not self.match_consecutive_identifiers(
             [TokenType.MUTUALLY.value, TokenType.EXCLUSIVE.value, TokenType.WITH.value]
         ):
-            return None
+            return []
         self.consume(TokenType.COLON, 'Expected colon after "Mutually Exclusive with"')
 
         exclusive_mods = []
