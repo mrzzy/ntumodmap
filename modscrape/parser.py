@@ -225,8 +225,10 @@ class Parser:
                 self.move()
                 misc = []
                 while not self.match(TokenType.RPAREN):
-                    if self.previous_token().token_type != TokenType.LPAREN:
-                        misc.append(self.previous_token().literal)
+                    # since we are moving forwards, previous token can never be None
+                    previous_token = cast(Token, self.previous_token())
+                    if previous_token.token_type != TokenType.LPAREN:
+                        misc.append(previous_token.literal)
                     self.move()
                 module_code.misc = " ".join(misc)
 
