@@ -213,7 +213,10 @@ class Parser:
         module_code_token: Optional[Token] = self.consume(
             TokenType.MODULE_CODE, "Expected an module code to start off a module"
         )
+        if module_code_token is None:
+            return None
         module_code = ModuleCode(module_code_token.literal)
+
         # If the module code is e.g. 'MH1812(Corequisite)', this will catch that and parse it in
         if self.match(TokenType.LPAREN):
             if self.match_consecutive([TokenType.COREQ, TokenType.RPAREN]):
