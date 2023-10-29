@@ -235,7 +235,7 @@ class Parser:
         # module_code can be (None | ModuleCode(CB1131))
         return module_code
 
-    def pass_fail(self) -> Optional[Token]:
+    def pass_fail(self) -> bool:
         initial_position = self.position
         found = self.match_multi([TokenType.GRADE, TokenType.TYPE])
         if found:
