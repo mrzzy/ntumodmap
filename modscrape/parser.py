@@ -267,7 +267,7 @@ class Parser:
 
         return flatten_tokens(TokenType.AU, aus, interval="")
 
-    def _mod_and(self) -> list[Token]:
+    def _mod_and(self) -> list[ModuleCode]:
         current_set = []
         current_set.append(self.module_code())
         while self.match(TokenType.AND):
