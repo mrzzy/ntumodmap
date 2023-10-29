@@ -301,7 +301,8 @@ class Parser:
         self.set_position(initial_position)
         return None
 
-    # This returns a list of the pre-requisite modules
+    # This returns a list of list of the pre-requisite modules
+    # Each nested list represents set of module(s) that can be taken to satisfy prerequisites
     def pre_requisite_mods(self) -> list[list[ModuleCode]]:
         initial_position = self.position
         if not self.match(TokenType.PREREQ):
