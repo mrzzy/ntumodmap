@@ -186,7 +186,7 @@ class Parser:
                 return False
         return True
 
-    def consume(self, token_type: TokenType, error: str) -> Optional[Token]:
+    def consume(self, token_type: TokenType, error: str) -> Token:
         try_match = self.match(token_type)
         # If it failed to match: return an error
         if not try_match:
@@ -194,27 +194,24 @@ class Parser:
             raise Exception(
                 f"Error: expected {token_type} but received {current_token.token_type}",
             )
-        return self.previous_token()
+        # desired tokens was just matched, so retrieving previous should not return None
+        return cast(Token, self.previous_token())
 
-    def consume_multi(
-        self, token_types: list[TokenType], error: str
-    ) -> Optional[Token]:
+    def consume_multi(self, token_types: list[TokenType], error: str) -> Token:
         try_match = self.match_multi(token_types)
         if not try_match:
             current_token = self.current_token()
             raise Exception(
                 f"Error: expected {token_types} but received {current_token.token_type}",
             )
-            return None
-        return self.previous_token()
+        # desired tokens was just matched, so retrieving previous should not return None
+        return cast(Token, self.previous_token())
 
     def module_code(self) -> Optional[ModuleCode]:
         # e.g. CB1131, SC1005, SC1007
-        module_code_token: Optional[Token] = self.consume(
+        module_code_token = self.consume(
             TokenType.MODULE_CODE, "Expected an module code to start off a module"
         )
-        if module_code_token is None:
-            return None
         module_code = ModuleCode(module_code_token.literal)
 
         # If the module code is e.g. 'MH1812(Corequisite)', this will catch that and parse it in
@@ -260,12 +257,8 @@ class Parser:
         module_description = flatten_tokens(TokenType.IDENTIFIER, module_description)
         return module_description
 
-    def au(self) -> Optional[Token]:
-        number: Optional[Token] = self.consume(
-            TokenType.NUMBER, "Expected a number to indicate AUs"
-        )
-        if number is None:
-            return None
+    def au(self) -> Token:
+        number = self.consume(TokenType.NUMBER, "Expected a number to indicate AUs")
 
         aus = [number]
         while not self.match(TokenType.AU):
