@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import FrozenSet, Optional
+from typing import Optional
 
 
 @dataclass
@@ -36,8 +36,8 @@ class Module:
     mutually_exclusives: list[ModuleCode]
     needs_year: Optional[int]
     needs_modules: list[list[ModuleCode]]
-    rejects_modules: FrozenSet[ModuleCode]
-    rejects_courses: FrozenSet[Course]
-    allowed_courses: FrozenSet[Course]
+    rejects_modules: list[ModuleCode]
+    rejects_courses: list[Course]
+    allowed_courses: list[Course]
     is_bde: bool
     is_pass_fail: bool

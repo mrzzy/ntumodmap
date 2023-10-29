@@ -6,7 +6,7 @@
 # This will just produce a flat structure of [Modude]
 #
 
-from typing import Callable, FrozenSet, Optional, TypeVar, cast
+from typing import Callable, Optional, TypeVar, cast
 
 from module import Course, Module, ModuleCode
 from tok import Token, TokenType, flatten_tokens
@@ -54,9 +54,9 @@ def tokens_to_module(
     au = float(module_au.literal)
 
     # TODO: To be filled in
-    rejects_modules: FrozenSet[ModuleCode] = frozenset()
-    rejects_courses: FrozenSet[Course] = frozenset()
-    allowed_courses: FrozenSet[Course] = frozenset()
+    rejects_modules: list[ModuleCode] = []
+    rejects_courses: list[Course] = []
+    allowed_courses: list[Course] = []
     is_bde = False
 
     assert isinstance(title, str) and isinstance(au, float)
