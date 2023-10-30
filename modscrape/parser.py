@@ -6,9 +6,9 @@
 # This will just produce a flat structure of [Modude]
 #
 
-from typing import Callable, Optional, TypeVar
+from typing import Callable, Optional, TypeVar, cast
 
-from module import Module, ModuleCode
+from module import Course, Module, ModuleCode
 from tok import Token, TokenType, flatten_tokens
 
 # I note that this may be bad practice but I dont see any other way to
@@ -35,7 +35,7 @@ def contextual(
         if res is None:
             # Sets the position back to where it started
             parser.set_position(begin)
-            return
+            return None
         return res
 
     return contextual_wrapper(parser)
@@ -45,7 +45,7 @@ def tokens_to_module(
     module_code: ModuleCode,
     module_title: Token,
     module_au: Token,
-    module_mutually_exclusives: Optional[list[ModuleCode]],
+    module_mutually_exclusives: list[ModuleCode],
     module_pre_requisite_year: Optional[Token],
     module_pre_requisite_mods: list[list[ModuleCode]],
     module_pass_fail: bool,
@@ -53,10 +53,10 @@ def tokens_to_module(
     title = module_title.literal
     au = float(module_au.literal)
 
-    # To be filled in:
-    rejects_modules = []
-    rejects_courses = []
-    allowed_courses = []
+    # TODO: To be filled in
+    rejects_modules: list[ModuleCode] = []
+    rejects_courses: list[Course] = []
+    allowed_courses: list[Course] = []
     is_bde = False
 
     assert isinstance(title, str) and isinstance(au, float)
@@ -66,7 +66,12 @@ def tokens_to_module(
         title,
         au,
         module_mutually_exclusives,
-        module_pre_requisite_year,
+        # parse needs_year as int if set
+        (
+            int(module_pre_requisite_year.literal)
+            if module_pre_requisite_year is not None
+            else None
+        ),
         module_pre_requisite_mods,
         rejects_modules,
         rejects_courses,
@@ -89,7 +94,7 @@ class Parser:
     def set_position(self, position):
         self.position = position
 
-    def current_token(self) -> Optional[Token]:
+    def current_token(self) -> Token:
         return self.tokens[self.paragraph][self.position]
 
     def previous_token(self) -> Optional[Token]:
@@ -122,8 +127,6 @@ class Parser:
     # Takes in a TokenType, checks if the current token is of the same TokenType
     def match_no_move(self, token_type: TokenType) -> bool:
         current_token = self.current_token()
-        if current_token is None:
-            return False
         if current_token.token_type == token_type:
             return True
         # All other cases are false
@@ -133,8 +136,6 @@ class Parser:
     # it will move the position up
     def match(self, token_type: TokenType) -> bool:
         current_token = self.current_token()
-        if current_token is None:
-            return False
         if current_token.token_type == token_type:
             self.move()
             return True
@@ -145,10 +146,8 @@ class Parser:
     # it will move the position up
     def match_multi(self, token_types: list[TokenType]) -> bool:
         current_token = self.current_token()
-        if current_token is None:
-            return False
         for token_type in token_types:
-            if current_token.token_type != token_type:
+            if cast(Token, current_token).token_type != token_type:
                 return False
             self.move()
             current_token = self.current_token()
@@ -156,8 +155,6 @@ class Parser:
 
     def match_identifier(self, identifier_literal: str) -> bool:
         current_token = self.current_token()
-        if current_token is None:
-            return False
         if current_token.token_type != TokenType.IDENTIFIER:
             return False
         if current_token.literal == identifier_literal:
@@ -175,11 +172,11 @@ class Parser:
         self, token_types: list[TokenType], token_literals: list[str]
     ) -> bool:
         assert len(token_types) == len(token_literals)
-        for token_type in token_types:
+        for token_type, token_literal in zip(token_types, token_literals):
             token = self.current_token()
             if not self.match(token_type):
                 return False
-            if token.literal != token_type.literal:
+            if cast(Token, token).literal != token_literal:
                 return False
         return True
 
@@ -189,36 +186,34 @@ class Parser:
                 return False
         return True
 
-    def consume(self, token_type: TokenType, error: str) -> Optional[Token]:
+    def consume(self, token_type: TokenType, error: str) -> Token:
         try_match = self.match(token_type)
         # If it failed to match: return an error
         if not try_match:
             current_token = self.current_token()
-            if current_token is not None:
-                raise Exception(
-                    f"Error: expected {token_type} but received {current_token.token_type}",
-                )
-        return self.previous_token()
+            raise Exception(
+                f"Error: expected {token_type} but received {current_token.token_type}",
+            )
+        # desired tokens was just matched, so retrieving previous should not return None
+        return cast(Token, self.previous_token())
 
-    def consume_multi(
-        self, token_types: list[TokenType], error: str
-    ) -> Optional[Token]:
+    def consume_multi(self, token_types: list[TokenType], error: str) -> Token:
         try_match = self.match_multi(token_types)
         if not try_match:
             current_token = self.current_token()
-            if current_token is not None:
-                raise Exception(
-                    f"Error: expected {token_types} but received {current_token.token_type}",
-                )
-                return None
-        return self.previous_token()
+            raise Exception(
+                f"Error: expected {token_types} but received {current_token.token_type}",
+            )
+        # desired tokens was just matched, so retrieving previous should not return None
+        return cast(Token, self.previous_token())
 
-    def module_code(self) -> Optional[Module]:
+    def module_code(self) -> ModuleCode:
         # e.g. CB1131, SC1005, SC1007
-        module_code_token: Optional[Token] = self.consume(
+        module_code_token = self.consume(
             TokenType.MODULE_CODE, "Expected an module code to start off a module"
         )
         module_code = ModuleCode(module_code_token.literal)
+
         # If the module code is e.g. 'MH1812(Corequisite)', this will catch that and parse it in
         if self.match(TokenType.LPAREN):
             if self.match_consecutive([TokenType.COREQ, TokenType.RPAREN]):
@@ -227,15 +222,17 @@ class Parser:
                 self.move()
                 misc = []
                 while not self.match(TokenType.RPAREN):
-                    if self.previous_token().token_type != TokenType.LPAREN:
-                        misc.append(self.previous_token().literal)
+                    # since we are moving forwards, previous token can never be None
+                    previous_token = cast(Token, self.previous_token())
+                    if previous_token.token_type != TokenType.LPAREN:
+                        misc.append(previous_token.literal)
                     self.move()
                 module_code.misc = " ".join(misc)
 
         # module_code can be (None | ModuleCode(CB1131))
         return module_code
 
-    def pass_fail(self) -> Optional[Token]:
+    def pass_fail(self) -> bool:
         initial_position = self.position
         found = self.match_multi([TokenType.GRADE, TokenType.TYPE])
         if found:
@@ -249,7 +246,7 @@ class Parser:
         self.set_position(initial_position)
         return False
 
-    def module_description(self) -> Optional[Token]:
+    def module_description(self) -> Token:
         # Parse module name until the numeric AU
         # e.g. Introduction to Computational Thinking
         module_description = []
@@ -257,26 +254,20 @@ class Parser:
             token = self.current_token()
             self.move()
             module_description.append(token)
-        module_description = flatten_tokens(TokenType.IDENTIFIER, module_description)
-        return module_description
+        return flatten_tokens(TokenType.IDENTIFIER, module_description)
 
-    def au(self) -> Optional[Token]:
-        number: Optional[Token] = self.consume(
-            TokenType.NUMBER, "Expected a number to indicate AUs"
-        )
-        if number is None:
-            return None
+    def au(self) -> Token:
+        number = self.consume(TokenType.NUMBER, "Expected a number to indicate AUs")
 
         aus = [number]
         while not self.match(TokenType.AU):
             token = self.current_token()
             self.move()
             aus.append(token)
-        aus = flatten_tokens(TokenType.AU, aus, interval="")
 
-        return aus
+        return flatten_tokens(TokenType.AU, aus, interval="")
 
-    def _mod_and(self) -> list[Token]:
+    def _mod_and(self) -> list[ModuleCode]:
         current_set = []
         current_set.append(self.module_code())
         while self.match(TokenType.AND):
@@ -294,9 +285,10 @@ class Parser:
         # 1) Prerequisite: Year 3 standing
         # 2) Prerequisite: Study Year 3 standing
         # Note that I have not been able to find any nesting of years, i.e. Year 2 & Year 3 standing
-        if self.match_identifier("Year") or self.match("Study"):
+        if self.match_identifier("Year") or self.match_identifier("Study"):
             # This moves past both Year and Study Year
-            if self.previous_token().literal == "Study":
+            previous_token = self.previous_token()
+            if previous_token is not None and previous_token.literal == "Study":
                 self.move()
             year = self.consume(
                 TokenType.NUMBER, "Expected a number after Year/Study Year"
@@ -309,11 +301,12 @@ class Parser:
         self.set_position(initial_position)
         return None
 
-    # This returns a list of the pre-requisite modules
-    def pre_requisite_mods(self) -> Optional[list[Token]]:
+    # This returns a list of list of the pre-requisite modules
+    # Each nested list represents set of module(s) that can be taken to satisfy prerequisites
+    def pre_requisite_mods(self) -> list[list[ModuleCode]]:
         initial_position = self.position
         if not self.match(TokenType.PREREQ):
-            return None
+            return []
         self.consume(TokenType.COLON, 'Expect colon after "Prerequisite"')
 
         # This can either be a module prerequisite or a year pre-requisite
@@ -326,14 +319,14 @@ class Parser:
             return prereq_mods
 
         self.set_position(initial_position)
-        return None
+        return []
 
-    def mutually_exclusive(self) -> Optional[list[Token]]:
+    def mutually_exclusive(self) -> list[ModuleCode]:
         # If it does not start with "Mutually exclusive with"
         if not self.match_consecutive_identifiers(
             [TokenType.MUTUALLY.value, TokenType.EXCLUSIVE.value, TokenType.WITH.value]
         ):
-            return None
+            return []
         self.consume(TokenType.COLON, 'Expected colon after "Mutually Exclusive with"')
 
         exclusive_mods = []

@@ -24,6 +24,14 @@ repos:
     rev: v0.1.0
     hooks:
       - id: ruff
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.6.1
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - types-beautifulsoup4==4.12.0.7
+          - types-html5lib==1.1.11.15
+          - types-requests==2.31.0.10
   - repo: https://github.com/python-jsonschema/check-jsonschema
     rev: 0.27.0
     hooks:
