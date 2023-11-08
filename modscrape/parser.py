@@ -59,8 +59,6 @@ def tokens_to_module(
     allowed_courses: list[Course] = []
     is_bde = False
 
-    assert isinstance(title, str) and isinstance(au, float)
-
     return Module(
         module_code,
         title,
