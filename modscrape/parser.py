@@ -388,7 +388,6 @@ class Parser:
                 # Reset the indices and move on to the next module
                 self.paragraph += 1
                 self.position = 0
-        print(modules)
         return modules
 
 
