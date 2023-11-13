@@ -10,6 +10,7 @@ from typing import Callable, Optional, TypeVar, cast
 
 from module import Course, Module, ModuleCode
 from tok import Token, TokenType, flatten_tokens
+from pprint import pprint
 
 # I note that this may be bad practice but I dont see any other way to
 # unwrap an optional
@@ -45,17 +46,18 @@ def tokens_to_module(
     module_code: ModuleCode,
     module_title: Token,
     module_au: Token,
-    module_mutually_exclusives: list[ModuleCode],
+    module_pass_fail: bool,
     module_pre_requisite_year: Optional[Token],
     module_pre_requisite_mods: list[list[ModuleCode]],
-    module_pass_fail: bool,
+    module_mutually_exclusives: list[ModuleCode],
+    module_reject_courses: list[Course],
 ) -> Module:
     title = module_title.literal
     au = float(module_au.literal)
 
     # TODO: To be filled in
     rejects_modules: list[ModuleCode] = []
-    rejects_courses: list[Course] = []
+    rejects_courses: list[Course] = module_reject_courses
     allowed_courses: list[Course] = []
     is_bde = False
 
@@ -94,8 +96,8 @@ class Parser:
     def set_position(self, position):
         self.position = position
 
-    def current_token(self) -> Token:
-        return self.tokens[self.paragraph][self.position]
+    def current_token(self, peek=0) -> Token:
+        return self.tokens[self.paragraph][self.position + peek]
 
     def previous_token(self) -> Optional[Token]:
         """
@@ -181,19 +183,24 @@ class Parser:
         return True
 
     def match_consecutive_identifiers(self, token_literals: list[str]) -> bool:
+        initial_position = self.position
         for token_literal in token_literals:
             if not self.match_identifier(token_literal):
+                self.set_position(initial_position)
                 return False
         return True
+
+    def raise_error(self, expected_token_type: TokenType) -> Exception:
+        current_token = self.current_token()
+        raise Exception(
+            f"Error: expected {expected_token_type} but received {current_token.token_type}",
+        )
 
     def consume(self, token_type: TokenType, error: str) -> Token:
         try_match = self.match(token_type)
         # If it failed to match: return an error
         if not try_match:
-            current_token = self.current_token()
-            raise Exception(
-                f"Error: expected {token_type} but received {current_token.token_type}",
-            )
+            self.raise_error(token_type)
         # desired tokens was just matched, so retrieving previous should not return None
         return cast(Token, self.previous_token())
 
@@ -231,6 +238,49 @@ class Parser:
 
         # module_code can be (None | ModuleCode(CB1131))
         return module_code
+
+    def course(self) -> Course:
+        # TODO: Concatenate the course code into one,
+        # can possible be MS-2ndMaj/Spec, which is multiple identifier tokens
+        course_code = self.consume(
+            TokenType.IDENTIFIER, "Expected an identifier for a course"
+        )
+
+        alt_course_code = None
+        from_year = None
+        to_year = None
+        is_direct_entry = None
+
+        # Possible cases: ENG(ENE)(2018-onwards)
+        # There are up to 3 possible parenthesis here - just match them all
+        for _ in range(3):
+            if self.match(TokenType.LPAREN):
+                # Check for alternate representations
+                if self.match_consecutive_identifiers(["Direct", "Entry"]):
+                    is_direct_entry = True
+                elif self.match_consecutive_identifiers(["Non", "Direct", "Entry"]):
+                    is_direct_entry = False
+                elif self.match(TokenType.IDENTIFIER):
+                    alt_course_code = cast(Token, self.previous_token())
+                    # Close off the parenthesis
+                elif self.match(TokenType.NUMBER):
+                    from_year = cast(Token, self.previous_token())
+                    # Optional dash
+                    if self.match(TokenType.DASH):
+                        # Expect either a number or a "onwards"
+                        if self.match_identifier("onwards"):
+                            to_year = 9999
+                        elif self.match(TokenType.NUMBER):
+                            to_year = self.current_token()
+                self.consume(TokenType.RPAREN, "Expected a ')' to close off '('")
+
+        return Course(
+            course=course_code,
+            is_direct_entry=None,
+            from_year=from_year,
+            to_year=to_year,
+            alt_course=alt_course_code,
+        )
 
     def pass_fail(self) -> bool:
         initial_position = self.position
@@ -337,6 +387,65 @@ class Parser:
 
         return exclusive_mods
 
+    def not_available_to_programme(self) -> list[Course]:
+        if not self.match_consecutive_identifiers(
+            [
+                TokenType.NOT.value,
+                TokenType.AVAIL.value,
+                TokenType.TO.value,
+                TokenType.PROGRAMME.value,
+            ]
+        ):
+            return []
+        # There's always a ':' after 'Not available to Programme'
+        self.consume(TokenType.COLON, "Expected ':' after 'Not available to Programme'")
+
+        courses: list[Course] = []
+        while course := self.course():
+            courses.append(course)
+            if self.current_token().token_type == TokenType.COMMA:
+                self.move()
+            else:
+                break
+        return courses
+
+    def not_available_to_programme_with(self) -> list[Course]:
+        return None
+
+    def not_offered_as_bde_or_ue(self) -> Optional[Token]:
+        if self.match_consecutive(
+            [
+                TokenType.NOT,
+                TokenType.OFFERED,
+                TokenType.AS,
+                TokenType.BROADENING,
+                TokenType.IDENTIFIER,
+                TokenType.DEEPENING,
+                TokenType.ELECTIVE,
+            ]
+        ):
+            return Token(
+                TokenType.NOT_OFFERED_AS_BDE, TokenType.NOT_OFFERED_AS_BDE.value
+            )
+        if self.match_consecutive_literals(
+            [
+                TokenType.NOT,
+                TokenType.OFFERED,
+                TokenType.AS,
+                TokenType.UNRESTRICTED,
+                TokenType.ELECTIVE,
+            ],
+            [
+                TokenType.NOT.value,
+                TokenType.OFFERED.value,
+                TokenType.AS.value,
+                TokenType.UNRESTRICTED.value,
+                TokenType.ELECTIVE.value,
+            ],
+        ):
+            return Token(TokenType.NOT_OFFERED_AS_UE, TokenType.NOT_OFFERED_AS_UE.value)
+        return None
+
     def module(self) -> Optional[Module]:
         module_code = self.module_code()
         module_description = self.module_description()
@@ -350,14 +459,26 @@ class Parser:
         # Try to match for mutually exclusives
         mutually_exclusives = self.mutually_exclusive()
 
+        # Try to match Not available to Programme:
+        not_available_to_programme = self.not_available_to_programme()
+
+        # Try to match Not available to Programme with:
+        not_available_to_programme_with = self.not_available_to_programme_with()
+
+        # Try to match Not available as PE to Programme with:
+
+        # Not offered as BDE or UE
+        # not_offered_as_bde_or_ue = self.not_offered_as_bde_or_ue()
+
         module = tokens_to_module(
             module_code,
             module_description,
             module_au,
-            mutually_exclusives,
+            pass_fail,  # module pass fail
             pre_requisites_year,
             pre_requisites_mods,
-            pass_fail,  # module pass fail
+            mutually_exclusives,
+            [not_available_to_programme],
         )
 
         return module
