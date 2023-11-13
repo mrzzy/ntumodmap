@@ -261,21 +261,23 @@ class Parser:
                 elif self.match_consecutive_identifiers(["Non", "Direct", "Entry"]):
                     is_direct_entry = False
                 elif self.match(TokenType.IDENTIFIER):
-                    alt_course_code = cast(Token, self.previous_token())
+                    previous_token = cast(Token, self.previous_token())
+                    alt_course_code = previous_token.literal
                     # Close off the parenthesis
                 elif self.match(TokenType.NUMBER):
-                    from_year = cast(Token, self.previous_token())
+                    previous_token = cast(Token, self.previous_token())
+                    from_year = int(previous_token.literal)
                     # Optional dash
                     if self.match(TokenType.DASH):
                         # Expect either a number or a "onwards"
                         if self.match_identifier("onwards"):
                             to_year = 9999
                         elif self.match(TokenType.NUMBER):
-                            to_year = self.current_token()
+                            to_year = int(self.current_token().literal)
                 self.consume(TokenType.RPAREN, "Expected a ')' to close off '('")
 
         return Course(
-            course=course_code,
+            course=course_code.literal,
             is_direct_entry=None,
             from_year=from_year,
             to_year=to_year,
@@ -410,7 +412,7 @@ class Parser:
         return courses
 
     def not_available_to_programme_with(self) -> list[Course]:
-        return None
+        return []
 
     def not_offered_as_bde_or_ue(self) -> Optional[Token]:
         if self.match_consecutive(
@@ -478,7 +480,7 @@ class Parser:
             pre_requisites_year,
             pre_requisites_mods,
             mutually_exclusives,
-            [not_available_to_programme],
+            not_available_to_programme,
         )
 
         return module
