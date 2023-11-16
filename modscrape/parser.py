@@ -465,6 +465,7 @@ class Parser:
         not_available_to_programme = self.not_available_to_programme()
 
         # Try to match Not available to Programme with:
+        # This one specifically matches for Admyr-*
         not_available_to_programme_with = self.not_available_to_programme_with()
 
         # Try to match Not available as PE to Programme with:
