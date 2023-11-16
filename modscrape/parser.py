@@ -468,6 +468,7 @@ class Parser:
         not_available_to_programme_with = self.not_available_to_programme_with()
 
         # Try to match Not available as PE to Programme with:
+        # Note that PE stands for Prescribed Elective
 
         # Not offered as BDE or UE
         # not_offered_as_bde_or_ue = self.not_offered_as_bde_or_ue()
