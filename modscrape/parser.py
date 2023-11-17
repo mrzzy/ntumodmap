@@ -94,7 +94,7 @@ class Parser:
     def set_position(self, position):
         self.position = position
 
-    def current_token(self) -> Token:
+    def current_token(self) -> Optional[Token]:
         return self.tokens[self.paragraph][self.position]
 
     def previous_token(self) -> Optional[Token]:
@@ -127,6 +127,8 @@ class Parser:
     # Takes in a TokenType, checks if the current token is of the same TokenType
     def match_no_move(self, token_type: TokenType) -> bool:
         current_token = self.current_token()
+        if current_token is None:
+            return False
         if current_token.token_type == token_type:
             return True
         # All other cases are false
@@ -136,6 +138,8 @@ class Parser:
     # it will move the position up
     def match(self, token_type: TokenType) -> bool:
         current_token = self.current_token()
+        if current_token is None:
+            return False
         if current_token.token_type == token_type:
             self.move()
             return True
@@ -147,7 +151,7 @@ class Parser:
     def match_multi(self, token_types: list[TokenType]) -> bool:
         current_token = self.current_token()
         for token_type in token_types:
-            if cast(Token, current_token).token_type != token_type:
+            if current_token is None or current_token.token_type != token_type:
                 return False
             self.move()
             current_token = self.current_token()
@@ -155,6 +159,8 @@ class Parser:
 
     def match_identifier(self, identifier_literal: str) -> bool:
         current_token = self.current_token()
+        if current_token is None:
+            return False
         if current_token.token_type != TokenType.IDENTIFIER:
             return False
         if current_token.literal == identifier_literal:
@@ -191,8 +197,9 @@ class Parser:
         # If it failed to match: return an error
         if not try_match:
             current_token = self.current_token()
+            received = "no token" if current_token is None else current_token.token_type
             raise Exception(
-                f"Error: expected {token_type} but received {current_token.token_type}",
+                f"Error: expected {token_type} but received {received}",
             )
         # desired tokens was just matched, so retrieving previous should not return None
         return cast(Token, self.previous_token())
@@ -201,8 +208,9 @@ class Parser:
         try_match = self.match_multi(token_types)
         if not try_match:
             current_token = self.current_token()
+            received = "no token" if current_token is None else current_token.token_type
             raise Exception(
-                f"Error: expected {token_types} but received {current_token.token_type}",
+                f"Error: expected {token_types} but received {received}",
             )
         # desired tokens was just matched, so retrieving previous should not return None
         return cast(Token, self.previous_token())
@@ -252,6 +260,10 @@ class Parser:
         module_description = []
         while not self.match_no_move(TokenType.NUMBER):
             token = self.current_token()
+            if token is None:
+                raise Exception(
+                    "Expected token to parse as module description, but no tokens remain."
+                )
             self.move()
             module_description.append(token)
         return flatten_tokens(TokenType.IDENTIFIER, module_description)
@@ -262,6 +274,8 @@ class Parser:
         aus = [number]
         while not self.match(TokenType.AU):
             token = self.current_token()
+            if not token:
+                raise Exception("Expected token to parse as AU, but no tokens remain.")
             self.move()
             aus.append(token)
 
