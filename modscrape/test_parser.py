@@ -4,8 +4,9 @@
 # Parser
 #
 
-from parser import tokens_to_module
+from parser import Parser, tokens_to_module
 
+from lexer import lex
 from module import Module, ModuleCode
 from tok import Token, TokenType
 
@@ -42,3 +43,16 @@ def test_tokens_to_module():
         )
 
         assert actual == expected
+
+
+def test_parser_module_code():
+    cases = [
+        ("SC1005", ModuleCode("SC1005")),
+        ("MH1812(Corequisite)", ModuleCode("MH1812", is_corequisite=True)),
+        (
+            "CC0005(Miscellaneous information)",
+            ModuleCode("CC0005", misc="Miscellaneous information"),
+        ),
+    ]
+    for case, expected in cases:
+        assert Parser(lex([case])).module_code() == expected
