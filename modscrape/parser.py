@@ -99,8 +99,21 @@ class Parser:
     def set_position(self, position):
         self.position = position
 
+<<<<<<< HEAD
     def current_token(self, peek=0) -> Token:
         return self.tokens[self.paragraph][self.position + peek]
+||||||| parent of 93f7dbd (fix(modscrape): add if guard to check for index out of bounds in current_token())
+    def current_token(self) -> Optional[Token]:
+        return self.tokens[self.paragraph][self.position]
+=======
+    def current_token(self) -> Optional[Token]:
+        # current if current tokens within bounds
+        if self.paragraph >= len(self.tokens) or self.position >= len(
+            self.tokens[self.paragraph]
+        ):
+            return None
+        return self.tokens[self.paragraph][self.position]
+>>>>>>> 93f7dbd (fix(modscrape): add if guard to check for index out of bounds in current_token())
 
     def previous_token(self) -> Optional[Token]:
         """
