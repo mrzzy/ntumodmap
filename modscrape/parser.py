@@ -230,14 +230,12 @@ class Parser:
             if self.match_consecutive([TokenType.COREQ, TokenType.RPAREN]):
                 module_code.is_corequisite = True
             else:
-                self.move()
                 misc = []
-                while not self.match(TokenType.RPAREN):
-                    # since we are moving forwards, previous token can never be None
-                    previous_token = cast(Token, self.previous_token())
-                    if previous_token.token_type != TokenType.LPAREN:
-                        misc.append(previous_token.literal)
-                    self.move()
+                while not self.match_no_move(TokenType.RPAREN):
+                    misc_token = self.consume(
+                        TokenType.IDENTIFIER, "Expected miscellaneous identifier(s)."
+                    )
+                    misc.append(misc_token.literal)
                 module_code.misc = " ".join(misc)
 
         # module_code can be (None | ModuleCode(CB1131))
