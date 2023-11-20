@@ -45,6 +45,17 @@ def test_tokens_to_module():
         assert actual == expected
 
 
+def test_parser_current_token():
+    # check out of bounds handling
+    token = Token(TokenType.IDENTIFIER, "Something")
+    for tokens, expected in [
+        ([], None),
+        ([[]], None),
+        ([[token]], token),
+    ]:
+        assert Parser(tokens).current_token() == expected
+
+
 def test_parser_module_code():
     cases = [
         ("SC1005", ModuleCode("SC1005")),

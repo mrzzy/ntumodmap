@@ -94,11 +94,10 @@ class Parser:
 
     def current_token(self) -> Optional[Token]:
         # current if current tokens within bounds
-        if self.paragraph >= len(self.tokens) or self.position >= len(
+        is_out_bounds = self.paragraph >= len(self.tokens) or self.position >= len(
             self.tokens[self.paragraph]
-        ):
-            return None
-        return self.tokens[self.paragraph][self.position]
+        )
+        return None if is_out_bounds else self.tokens[self.paragraph][self.position]
 
     def previous_token(self) -> Optional[Token]:
         """
