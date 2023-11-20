@@ -71,12 +71,17 @@ def test_parser_match(tokens: list[list[Token]]):
     assert parser.match_no_move(TokenType.IDENTIFIER)
     assert parser.match(TokenType.IDENTIFIER)
     assert parser.position == 1
-    assert parser.match_identifier("quick")
+    assert parser.match_literal(TokenType.IDENTIFIER, "quick")
     assert parser.position == 2
-    assert parser.match_consecutive_identifiers(["brown", "fox", "jumped"])
+    assert parser.match_identifier("brown")
+    assert parser.position == 3
+    assert parser.match_consecutive_identifiers(["fox", "jumped"])
     assert parser.position == 5
-    assert parser.match_consecutive(
-        [TokenType.IDENTIFIER for _ in range(3)] + [TokenType.COMMA]
+    assert parser.match_consecutive([TokenType.IDENTIFIER for _ in range(2)])
+    assert parser.position == 7
+    assert parser.match_consecutive_literals(
+        [TokenType.IDENTIFIER, TokenType.COMMA],
+        ["ledge", ","],
     )
     assert parser.position == len(tokens[0])
 

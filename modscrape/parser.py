@@ -6,7 +6,8 @@
 # This will just produce a flat structure of [Modude]
 #
 
-from typing import Callable, Optional, TypeVar, cast
+from itertools import repeat
+from typing import Callable, Iterable, Optional, TypeVar, cast
 
 from module import Course, Module, ModuleCode
 from tok import Token, TokenType, flatten_tokens
@@ -139,60 +140,44 @@ class Parser:
     # Takes in a TokenType, if the current token is of the same TokenType
     # it will move the position up
     def match(self, token_type: TokenType) -> bool:
-        current_token = self.current_token()
-        if current_token is None:
-            return False
-        if current_token.token_type == token_type:
+        is_match = self.match_no_move(token_type)
+        if is_match:
             self.move()
-            return True
-        # All other cases are false
-        return False
+        return is_match
 
     # Takes in a list of [TokenType], if the current token is of the same TokenType
     # it will move the position up
-    def match_multi(self, token_types: list[TokenType]) -> bool:
-        current_token = self.current_token()
+    def match_multi(self, token_types: Iterable[TokenType]) -> bool:
         for token_type in token_types:
-            if current_token is None or current_token.token_type != token_type:
+            if not self.match(token_type):
                 return False
-            self.move()
-            current_token = self.current_token()
         return True
+
+    def match_literal(self, token_type: TokenType, literal: str) -> bool:
+        """Matches a single token based on given token_type and literal token content."""
+        current_token = self.current_token()
+        if current_token is not None and current_token.literal != literal:
+            return False
+        return self.match(token_type)
 
     def match_identifier(self, identifier_literal: str) -> bool:
-        current_token = self.current_token()
-        if current_token is None:
-            return False
-        if current_token.token_type != TokenType.IDENTIFIER:
-            return False
-        if current_token.literal == identifier_literal:
-            self.move()
-            return True
-        return False
+        return self.match_literal(TokenType.IDENTIFIER, identifier_literal)
 
-    def match_consecutive(self, token_types: list[TokenType]) -> bool:
-        for token_type in token_types:
-            if not self.match(token_type):
-                return False
-        return True
+    def match_consecutive(self, token_types: Iterable[TokenType]) -> bool:
+        return all(self.match(t) for t in token_types)
 
     def match_consecutive_literals(
-        self, token_types: list[TokenType], token_literals: list[str]
+        self, token_types: Iterable[TokenType], token_literals: list[str]
     ) -> bool:
-        assert len(token_types) == len(token_literals)
-        for token_type, token_literal in zip(token_types, token_literals):
-            token = self.current_token()
-            if not self.match(token_type):
-                return False
-            if cast(Token, token).literal != token_literal:
-                return False
-        return True
+        return all(
+            self.match_literal(t_type, literal)
+            for t_type, literal in zip(token_types, token_literals)
+        )
 
     def match_consecutive_identifiers(self, token_literals: list[str]) -> bool:
-        for token_literal in token_literals:
-            if not self.match_identifier(token_literal):
-                return False
-        return True
+        return self.match_consecutive_literals(
+            repeat(TokenType.IDENTIFIER), token_literals
+        )
 
     def consume(self, token_type: TokenType, error: str) -> Token:
         try_match = self.match(token_type)
@@ -206,7 +191,7 @@ class Parser:
         # desired tokens was just matched, so retrieving previous should not return None
         return cast(Token, self.previous_token())
 
-    def consume_multi(self, token_types: list[TokenType], error: str) -> Token:
+    def consume_multi(self, token_types: Iterable[TokenType], error: str) -> Token:
         try_match = self.match_multi(token_types)
         if not try_match:
             current_token = self.current_token()
