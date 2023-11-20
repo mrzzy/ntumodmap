@@ -86,6 +86,33 @@ def test_parser_match(tokens: list[list[Token]]):
     assert parser.position == len(tokens[0])
 
 
+def test_parser_consume(tokens: list[list[Token]]):
+    # wrong token type
+    parser = Parser(tokens)
+    with pytest.raises(Exception):
+        parser.consume(TokenType.PREREQ, "wrong token type")
+
+    # consume single
+    assert parser.consume(TokenType.IDENTIFIER, "no identifier") == tokens[0][0]
+    assert parser.position == 1
+
+    # consume multi
+    parser.position = len(tokens[0]) - 2
+    assert (
+        parser.consume_multi(
+            [TokenType.IDENTIFIER, TokenType.COMMA], "no identifier followed by comma"
+        )
+        == tokens[0][-1]
+    )
+    assert parser.position == len(tokens[0])
+
+    # exhausted tokens
+    with pytest.raises(Exception):
+        parser.consume(TokenType.IDENTIFIER, "end of string")
+    with pytest.raises(Exception):
+        parser.consume_multi([TokenType.IDENTIFIER], "end of string")
+
+
 def test_parser_module_code():
     cases = [
         ("SC1005", ModuleCode("SC1005")),
