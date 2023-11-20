@@ -5,12 +5,16 @@
 #
 
 from parser import Parser, tokens_to_module
+from typing import cast
+
+import pytest
 
 from lexer import lex
 from module import Module, ModuleCode
 from tok import Token, TokenType
 
 
+# Utility function test
 def test_tokens_to_module():
     for year in [None, Token(TokenType.NUMBER, "2")]:
         code, title = ModuleCode("SC1005"), "Digital Logic"
@@ -45,15 +49,36 @@ def test_tokens_to_module():
         assert actual == expected
 
 
-def test_parser_current_token():
+# Parser Tests
+@pytest.fixture
+def tokens() -> list[list[Token]]:
+    return lex(["The quick brown fox jumped over the ledge,", "and died."])
+
+
+def test_parser_current_token(tokens: list[list[Token]]):
     # check out of bounds handling
-    token = Token(TokenType.IDENTIFIER, "Something")
     for tokens, expected in [
-        ([], None),
-        ([[]], None),
-        ([[token]], token),
+        (cast(list[list[Token]], []), None),
+        (cast(list[list[Token]], [[]]), None),
+        (tokens, tokens[0][0]),
     ]:
+        print(Parser(tokens).position)
         assert Parser(tokens).current_token() == expected
+
+
+def test_parser_match(tokens: list[list[Token]]):
+    parser = Parser(tokens)
+    assert parser.match_no_move(TokenType.IDENTIFIER)
+    assert parser.match(TokenType.IDENTIFIER)
+    assert parser.position == 1
+    assert parser.match_identifier("quick")
+    assert parser.position == 2
+    assert parser.match_consecutive_identifiers(["brown", "fox", "jumped"])
+    assert parser.position == 5
+    assert parser.match_consecutive(
+        [TokenType.IDENTIFIER for _ in range(3)] + [TokenType.COMMA]
+    )
+    assert parser.position == len(tokens[0])
 
 
 def test_parser_module_code():
