@@ -124,3 +124,19 @@ def test_parser_module_code():
     ]
     for case, expected in cases:
         assert Parser(lex([case])).module_code() == expected
+
+
+def test_parser_pass_fail():
+    cases = [
+        # input, return value, exception
+        ("No match", False, None),
+        ("Grade Type: Pass/Fail", True, None),
+        ("Grade Type: Malformed", False, Exception),
+    ]
+
+    for text, expected, exception in cases:
+        if exception is not None:
+            with pytest.raises(exception):
+                Parser(lex([text])).pass_fail()
+            continue
+        assert Parser(lex([text])).pass_fail() == expected
