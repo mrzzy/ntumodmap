@@ -140,3 +140,24 @@ def test_parser_pass_fail():
                 Parser(lex([text])).pass_fail()
             continue
         assert Parser(lex([text])).pass_fail() == expected
+
+
+def test_module_description():
+    cases = [
+        ("No match", None, Exception),
+        (
+            "INTRODUCTION TO COMPUTATIONAL THINKING & PROGRAMMING 	3.0 AU",
+            Token(
+                TokenType.IDENTIFIER,
+                "INTRODUCTION TO COMPUTATIONAL THINKING & PROGRAMMING",
+            ),
+            None,
+        ),
+    ]
+    for text, expected, exception in cases:
+        if exception is not None:
+            with pytest.raises(exception):
+                Parser(lex([text])).module_description()
+            continue
+
+        assert Parser(lex([text])).module_description() == expected
