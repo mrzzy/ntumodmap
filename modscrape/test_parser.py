@@ -53,7 +53,7 @@ def test_tokens_to_module():
 # Parser Tests
 @dataclass
 class ParseCase:
-    """Parser test case. Either 'expected' or 'exception' should be set, but not both.
+    """Parser test case.
     - text: The text to feed to the parser.
     - expected: If set, the expected parsing result to receive from the parser.
     - exception: If set, an exception of this type should be raised.
@@ -68,10 +68,6 @@ def check_parser(cases: Iterable[ParseCase], method: Callable[[Parser], Any]):
     """Check that calling method on Parser passes the given ParseCases."""
     for case in cases:
         parser = Parser(lex([case.text]))
-
-        if case.expected is None and case.exception is None:
-            raise ValueError("Invalid parse case: both expected & exception unset.")
-
         if case.exception is not None:
             with pytest.raises(case.exception):
                 method(parser)
@@ -193,4 +189,60 @@ def test_au():
             ParseCase("3.0 AU", Token(TokenType.AU, "3.0"), None),
         ],
         method=Parser.au,
+    )
+
+
+def test_pre_requisite_year():
+    check_parser(
+        cases=[
+            ParseCase("", None),
+            # no comma after prerequisite
+            ParseCase("Prerequisite", exception=Exception),
+            ParseCase("Prerequisite:", None),
+            ParseCase("Prerequisite: Year 3 standing", Token(TokenType.NUMBER, "3")),
+            ParseCase(
+                "Prerequisite: Study Year 4 standing", Token(TokenType.NUMBER, "4")
+            ),
+        ],
+        method=Parser.pre_requisite_year,
+    )
+
+
+def test_pre_requisite_mods():
+    check_parser(
+        cases=[
+            ParseCase("", []),
+            # no comma after prerequisite
+            ParseCase("Prerequisite", exception=Exception),
+            ParseCase("Prerequisite:", []),
+            ParseCase(
+                text="Prerequisite: CZ1007 & CZ2001(Corequisite)"
+                " OR CE1007 & CE2001(Corequisite)"
+                " OR CE1007 & CZ2001(Corequisite)"
+                " OR CE2001(Corequisite) & CZ1007",
+                expected=[
+                    [ModuleCode("CZ1007"), ModuleCode("CZ2001", is_corequisite=True)],
+                    [ModuleCode("CE1007"), ModuleCode("CE2001", is_corequisite=True)],
+                    [ModuleCode("CE1007"), ModuleCode("CZ2001", is_corequisite=True)],
+                    [ModuleCode("CE2001", is_corequisite=True), ModuleCode("CZ1007")],
+                ],
+            ),
+        ],
+        method=Parser.pre_requisite_mods,
+    )
+
+
+def test_mutally_exclusive():
+    check_parser(
+        cases=[
+            ParseCase("", []),
+            # no comma after "Mutually exclusive with"
+            ParseCase("Mutually exclusive with", exception=Exception),
+            ParseCase("Mutually exclusive with:", []),
+            ParseCase(
+                text="Mutually exclusive with: CE4031, SC3020",
+                expected=[ModuleCode("CE4031"), ModuleCode("SC3020")],
+            ),
+        ],
+        method=Parser.mutually_exclusive,
     )
