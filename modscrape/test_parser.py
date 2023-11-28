@@ -4,8 +4,9 @@
 # Parser
 #
 
+from dataclasses import dataclass
 from parser import Parser, tokens_to_module
-from typing import cast
+from typing import Any, Callable, Iterable, Optional, Type, cast
 
 import pytest
 
@@ -14,7 +15,7 @@ from module import Module, ModuleCode
 from tok import Token, TokenType
 
 
-# Utility function test
+# Utility function tests
 def test_tokens_to_module():
     for year in [None, Token(TokenType.NUMBER, "2")]:
         code, title = ModuleCode("SC1005"), "Digital Logic"
@@ -50,6 +51,34 @@ def test_tokens_to_module():
 
 
 # Parser Tests
+@dataclass
+class ParseCase:
+    """Parser test case. Either 'expected' or 'exception' should be set, but not both.
+    - text: The text to feed to the parser.
+    - expected: If set, the expected parsing result to receive from the parser.
+    - exception: If set, an exception of this type should be raised.
+    """
+
+    text: str
+    expected: Optional[Any] = None
+    exception: Optional[Type[Exception]] = None
+
+
+def check_parser(cases: Iterable[ParseCase], method: Callable[[Parser], Any]):
+    """Check that calling method on Parser passes the given ParseCases."""
+    for case in cases:
+        parser = Parser(lex([case.text]))
+
+        if case.expected is None and case.exception is None:
+            raise ValueError("Invalid parse case: both expected & exception unset.")
+
+        if case.exception is not None:
+            with pytest.raises(case.exception):
+                method(parser)
+            continue
+        assert method(parser) == case.expected
+
+
 @pytest.fixture
 def tokens() -> list[list[Token]]:
     return lex(["The quick brown fox jumped over the ledge,", "and died."])
@@ -114,50 +143,54 @@ def test_parser_consume(tokens: list[list[Token]]):
 
 
 def test_parser_module_code():
-    cases = [
-        ("SC1005", ModuleCode("SC1005")),
-        ("MH1812(Corequisite)", ModuleCode("MH1812", is_corequisite=True)),
-        (
-            "CC0005(Miscellaneous information)",
-            ModuleCode("CC0005", misc="Miscellaneous information"),
-        ),
-    ]
-    for case, expected in cases:
-        assert Parser(lex([case])).module_code() == expected
+    check_parser(
+        cases=[
+            ParseCase("SC1005", ModuleCode("SC1005")),
+            ParseCase("MH1812(Corequisite)", ModuleCode("MH1812", is_corequisite=True)),
+            ParseCase(
+                "CC0005(Miscellaneous information)",
+                ModuleCode("CC0005", misc="Miscellaneous information"),
+            ),
+            ParseCase("::SC1005", exception=Exception),
+        ],
+        method=Parser.module_code,
+    )
 
 
 def test_parser_pass_fail():
-    cases = [
-        # input, return value, exception
-        ("No match", False, None),
-        ("Grade Type: Pass/Fail", True, None),
-        ("Grade Type: Malformed", False, Exception),
-    ]
-
-    for text, expected, exception in cases:
-        if exception is not None:
-            with pytest.raises(exception):
-                Parser(lex([text])).pass_fail()
-            continue
-        assert Parser(lex([text])).pass_fail() == expected
+    check_parser(
+        cases=[
+            # input, return value, exception
+            ParseCase("No match", False),
+            ParseCase("Grade Type: Pass/Fail", True),
+            ParseCase("Grade Type: Malformed", exception=Exception),
+        ],
+        method=Parser.pass_fail,
+    )
 
 
 def test_module_description():
-    cases = [
-        ("No match", None, Exception),
-        (
-            "INTRODUCTION TO COMPUTATIONAL THINKING & PROGRAMMING 	3.0 AU",
-            Token(
-                TokenType.IDENTIFIER,
-                "INTRODUCTION TO COMPUTATIONAL THINKING & PROGRAMMING",
+    check_parser(
+        cases=[
+            ParseCase("No match", exception=Exception),
+            ParseCase(
+                "INTRODUCTION TO COMPUTATIONAL THINKING & PROGRAMMING 	3.0 AU",
+                Token(
+                    TokenType.IDENTIFIER,
+                    "INTRODUCTION TO COMPUTATIONAL THINKING & PROGRAMMING",
+                ),
             ),
-            None,
-        ),
-    ]
-    for text, expected, exception in cases:
-        if exception is not None:
-            with pytest.raises(exception):
-                Parser(lex([text])).module_description()
-            continue
+        ],
+        method=Parser.module_description,
+    )
 
-        assert Parser(lex([text])).module_description() == expected
+
+def test_au():
+    check_parser(
+        cases=[
+            ParseCase("No number", exception=Exception),
+            ParseCase("5 missing token", exception=Exception),
+            ParseCase("3.0 AU", Token(TokenType.AU, "3.0"), None),
+        ],
+        method=Parser.au,
+    )
