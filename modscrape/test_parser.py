@@ -87,7 +87,6 @@ def test_parser_current_token(tokens: list[list[Token]]):
         (cast(list[list[Token]], [[]]), None),
         (tokens, tokens[0][0]),
     ]:
-        print(Parser(tokens).position)
         assert Parser(tokens).current_token() == expected
 
 
