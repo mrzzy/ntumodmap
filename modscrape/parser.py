@@ -6,7 +6,8 @@
 # This will just produce a flat structure of [Modude]
 #
 
-from typing import Callable, Optional, TypeVar, cast
+from itertools import repeat
+from typing import Callable, Iterable, Optional, TypeVar, cast
 
 from module import Course, Module, ModuleCode
 from tok import Token, TokenType, flatten_tokens
@@ -63,8 +64,6 @@ def tokens_to_module(
     allowed_courses: list[Course] = []
     is_bde = False
 
-    assert isinstance(title, str) and isinstance(au, float)
-
     return Module(
         module_code,
         title,
@@ -99,21 +98,8 @@ class Parser:
     def set_position(self, position):
         self.position = position
 
-<<<<<<< HEAD
     def current_token(self, peek=0) -> Token:
         return self.tokens[self.paragraph][self.position + peek]
-||||||| parent of 93f7dbd (fix(modscrape): add if guard to check for index out of bounds in current_token())
-    def current_token(self) -> Optional[Token]:
-        return self.tokens[self.paragraph][self.position]
-=======
-    def current_token(self) -> Optional[Token]:
-        # current if current tokens within bounds
-        if self.paragraph >= len(self.tokens) or self.position >= len(
-            self.tokens[self.paragraph]
-        ):
-            return None
-        return self.tokens[self.paragraph][self.position]
->>>>>>> 93f7dbd (fix(modscrape): add if guard to check for index out of bounds in current_token())
 
     def previous_token(self) -> Optional[Token]:
         """
@@ -155,52 +141,45 @@ class Parser:
     # Takes in a TokenType, if the current token is of the same TokenType
     # it will move the position up
     def match(self, token_type: TokenType) -> bool:
-        current_token = self.current_token()
-        if current_token is None:
-            return False
-        if current_token.token_type == token_type:
+        is_match = self.match_no_move(token_type)
+        if is_match:
             self.move()
-            return True
-        # All other cases are false
-        return False
+        return is_match
 
-    # Takes in a list of [TokenType], if the current token is of the same TokenType
-    # it will move the position up
-    def match_multi(self, token_types: list[TokenType]) -> bool:
+    def match_multi(self, token_types: Iterable[TokenType]) -> bool:
+        return self.match_consecutive(token_types)
+
+    def match_literal(self, token_type: TokenType, literal: str) -> bool:
+        """Matches a single token based on given token_type and literal token content."""
         current_token = self.current_token()
-        for token_type in token_types:
-            if current_token is None or current_token.token_type != token_type:
-                return False
-            self.move()
-            current_token = self.current_token()
-        return True
+        if current_token is not None and current_token.literal != literal:
+            return False
+        return self.match(token_type)
 
     def match_identifier(self, identifier_literal: str) -> bool:
-        current_token = self.current_token()
-        if current_token is None:
-            return False
-        if current_token.token_type != TokenType.IDENTIFIER:
-            return False
-        if current_token.literal == identifier_literal:
-            self.move()
-            return True
-        return False
+        return self.match_literal(TokenType.IDENTIFIER, identifier_literal)
 
-    def match_consecutive(self, token_types: list[TokenType]) -> bool:
-        for token_type in token_types:
-            if not self.match(token_type):
+    def match_consecutive(self, token_types: Iterable[TokenType]) -> bool:
+        """Given a list of tokens, match all of them in order.
+
+        Takes in a list of [TokenType], if the current token is of the same TokenType
+        it will move the position up
+        """
+        reset_position = self.position
+        for t in token_types:
+            if not self.match(t):
+                self.position = reset_position
                 return False
         return True
 
     def match_consecutive_literals(
-        self, token_types: list[TokenType], token_literals: list[str]
+        self, token_types: Iterable[TokenType], token_literals: Iterable[str]
     ) -> bool:
-        assert len(token_types) == len(token_literals)
-        for token_type, token_literal in zip(token_types, token_literals):
-            token = self.current_token()
-            if not self.match(token_type):
-                return False
-            if cast(Token, token).literal != token_literal:
+        """Given a list of tokens, and strings, match the token type and token literal."""
+        reset_position = self.position
+        for token_type, literal in zip(token_types, token_literals):
+            if not self.match_literal(token_type, literal):
+                self.position = reset_position
                 return False
         return True
 
@@ -226,7 +205,7 @@ class Parser:
         # desired tokens was just matched, so retrieving previous should not return None
         return cast(Token, self.previous_token())
 
-    def consume_multi(self, token_types: list[TokenType], error: str) -> Token:
+    def consume_multi(self, token_types: Iterable[TokenType], error: str) -> Token:
         try_match = self.match_multi(token_types)
         if not try_match:
             current_token = self.current_token()
@@ -249,14 +228,12 @@ class Parser:
             if self.match_consecutive([TokenType.COREQ, TokenType.RPAREN]):
                 module_code.is_corequisite = True
             else:
-                self.move()
                 misc = []
-                while not self.match(TokenType.RPAREN):
-                    # since we are moving forwards, previous token can never be None
-                    previous_token = cast(Token, self.previous_token())
-                    if previous_token.token_type != TokenType.LPAREN:
-                        misc.append(previous_token.literal)
-                    self.move()
+                while not self.match_no_move(TokenType.RPAREN):
+                    misc_token = self.consume(
+                        TokenType.IDENTIFIER, "Expected miscellaneous identifier(s)."
+                    )
+                    misc.append(misc_token.literal)
                 module_code.misc = " ".join(misc)
 
         # module_code can be (None | ModuleCode(CB1131))

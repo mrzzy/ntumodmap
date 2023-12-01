@@ -3,6 +3,7 @@
 # Literal string representations of the Token enum
 #
 
+from dataclasses import dataclass
 from enum import Enum
 
 
@@ -72,10 +73,10 @@ class TokenType(Enum):
     MODULE_CODE = "MODULE_CODE"
 
 
+@dataclass
 class Token:
-    def __init__(self, token_type: TokenType, literal: str):
-        self.token_type = token_type
-        self.literal = literal
+    token_type: TokenType
+    literal: str
 
     def __repr__(self):
         return f"({self.token_type}, {self.literal})"

@@ -184,6 +184,9 @@ pyrightconfig.json
 Session.vim
 Sessionx.vim
 
+# vim projectionist
+.projections.json
+
 # Temporary
 .netrwhist
 *~
