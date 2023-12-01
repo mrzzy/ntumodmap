@@ -3,7 +3,7 @@
 # Turns the strings into tokens to be parsed
 #
 
-from typing import Sequence
+from typing import Iterable
 
 from tok import Token, TokenType
 
@@ -26,7 +26,7 @@ keywords: dict[str, TokenType] = {
 }
 
 
-def lex(lines: Sequence[str]) -> list[list[Token]]:
+def lex(lines: Iterable[str]) -> list[list[Token]]:
     tokens: list[list[Token]] = []
     current: int = 0
     for line in lines:
