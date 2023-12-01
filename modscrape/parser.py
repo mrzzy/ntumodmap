@@ -164,26 +164,22 @@ class Parser:
         Takes in a list of [TokenType], if the current token is of the same TokenType
         it will move the position up
         """
-        n_matched = 0
+        reset_position = self.position
         for t in token_types:
-            if not self.match_no_move(t):
+            if not self.match(t):
+                self.position = reset_position
                 return False
-            n_matched += 1
-        # all tokens matched: advance parser position
-        self.position += n_matched
         return True
 
     def match_consecutive_literals(
         self, token_types: Iterable[TokenType], token_literals: Iterable[str]
     ) -> bool:
         """Given a list of tokens, and strings, match the token type and token literal."""
-        n_matched = 0
+        reset_position = self.position
         for token_type, literal in zip(token_types, token_literals):
-            if not (self.match_no_move(token_type) and self.current_token() == literal):
+            if not self.match_literal(token_type, literal):
+                self.position = reset_position
                 return False
-            n_matched += 1
-        # all tokens matched: advance parser position
-        self.position += n_matched
         return True
 
     def match_consecutive_identifiers(self, token_literals: list[str]) -> bool:
