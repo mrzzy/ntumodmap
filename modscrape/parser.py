@@ -145,13 +145,8 @@ class Parser:
             self.move()
         return is_match
 
-    # Takes in a list of [TokenType], if the current token is of the same TokenType
-    # it will move the position up
     def match_multi(self, token_types: Iterable[TokenType]) -> bool:
-        for token_type in token_types:
-            if not self.match(token_type):
-                return False
-        return True
+        return self.match_consecutive(token_types)
 
     def match_literal(self, token_type: TokenType, literal: str) -> bool:
         """Matches a single token based on given token_type and literal token content."""
@@ -164,17 +159,35 @@ class Parser:
         return self.match_literal(TokenType.IDENTIFIER, identifier_literal)
 
     def match_consecutive(self, token_types: Iterable[TokenType]) -> bool:
-        return all(self.match(t) for t in token_types)
+        """Given a list of tokens, match all of them in order.
+
+        Takes in a list of [TokenType], if the current token is of the same TokenType
+        it will move the position up
+        """
+        n_matched = 0
+        for t in token_types:
+            if not self.match_no_move(t):
+                return False
+            n_matched += 1
+        # all tokens matched: advance parser position
+        self.position += n_matched
+        return True
 
     def match_consecutive_literals(
-        self, token_types: Iterable[TokenType], token_literals: list[str]
+        self, token_types: Iterable[TokenType], token_literals: Iterable[str]
     ) -> bool:
-        return all(
-            self.match_literal(t_type, literal)
-            for t_type, literal in zip(token_types, token_literals)
-        )
+        """Given a list of tokens, and strings, match the token type and token literal."""
+        n_matched = 0
+        for token_type, literal in zip(token_types, token_literals):
+            if not (self.match_no_move(token_type) and self.current_token() == literal):
+                return False
+            n_matched += 1
+        # all tokens matched: advance parser position
+        self.position += n_matched
+        return True
 
     def match_consecutive_identifiers(self, token_literals: list[str]) -> bool:
+        """Given list of token literals, checks that tokens are identifiers and the literals match in order."""
         return self.match_consecutive_literals(
             repeat(TokenType.IDENTIFIER), token_literals
         )

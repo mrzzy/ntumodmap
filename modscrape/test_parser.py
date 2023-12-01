@@ -93,6 +93,7 @@ def test_parser_current_token(tokens: list[list[Token]]):
 def test_parser_match(tokens: list[list[Token]]):
     parser = Parser(tokens)
     assert parser.match_no_move(TokenType.IDENTIFIER)
+    assert parser.position == 0
     assert parser.match(TokenType.IDENTIFIER)
     assert parser.position == 1
     assert parser.match_literal(TokenType.IDENTIFIER, "quick")
@@ -108,6 +109,25 @@ def test_parser_match(tokens: list[list[Token]]):
         ["ledge", ","],
     )
     assert parser.position == len(tokens[0])
+
+
+def test_parser_match_mismatch_no_move(tokens: list[list[Token]]):
+    # check that does not move upon matching does match wrong token type
+    parser = Parser(tokens)
+    assert not parser.match_no_move(TokenType.NUMBER)
+    assert parser.position == 0
+    assert not parser.match(TokenType.NUMBER)
+    assert parser.position == 0
+    assert not parser.match_multi([TokenType.IDENTIFIER, TokenType.NUMBER])
+    assert parser.position == 0
+    assert not parser.match_consecutive([TokenType.IDENTIFIER, TokenType.NUMBER])
+    assert parser.position == 0
+    assert not parser.match_literal(TokenType.IDENTIFIER, "mismatch")
+    assert parser.position == 0
+    assert not parser.match_identifier("mismatch")
+    assert parser.position == 0
+    assert not parser.match_consecutive_identifiers(["The", "mismatch"])
+    assert parser.position == 0
 
 
 def test_parser_consume(tokens: list[list[Token]]):
