@@ -77,8 +77,8 @@ def scrape_modules(content_html: str):
 
 
 # Takes a nested list and concatenates inner list
-# e.g. [[a], [b]] -> [[a, b]]
-def concat_nested(lines: list[list[str]]) -> list[list[str]]:
+# e.g. [[[a], [b]]] -> [[a, b]]
+def concat_nested(lines: list[list[list[str]]]) -> list[list[str]]:
     return [list(chain(*line)) for line in lines]
 
 
