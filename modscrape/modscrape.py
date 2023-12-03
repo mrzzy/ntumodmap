@@ -12,6 +12,7 @@ import requests
 from bs4 import BeautifulSoup, Tag
 
 from lexer import lex
+from module import Module
 
 COURSE_CONTENT_URL = "https://wis.ntu.edu.sg/webexe/owa/aus_subj_cont"
 
@@ -60,7 +61,14 @@ def get_course_content(semester: str, course: str) -> str:
         return response.content.decode()
 
 
-def scrape_modules(content_html: str):
+def scrape_modules(content_html: str) -> list[Module]:
+    """Scrape modules from the given Course Content HTML.
+
+    Args:
+        content_html: HTML from NTU course countent website to scrape modules from.
+    Returns:
+        List of scraped modules.
+    """
     mod_listing = BeautifulSoup(content_html, "lxml")
     # each module is encoded as table
     mod_tables = mod_listing.find_all("table")
@@ -73,7 +81,13 @@ def scrape_modules(content_html: str):
             cols = [ele.text.strip() for ele in row.find_all("td")]
             individual.append(cols)
         lines.append(individual)
-    return lines
+    unnested = concat_nested(lines)
+    nonempty = filter_empty(unnested)
+    joined = [" ".join(line) for line in nonempty]
+
+    tokens = lex(joined)
+    modules = parse(tokens)
+    return modules
 
 
 # Takes a nested list and concatenates inner list
@@ -98,11 +112,5 @@ if __name__ == "__main__":
     # scrape courses from main page
     courses = extract_options(mainpage, "r_course_yr")
 
-    lines = scrape_modules(get_course_content("2023_1", "CSC;;1;F"))
-    lines = concat_nested(lines)
-    lines = filter_empty(lines)
-    lines = [" ".join(line) for line in lines]
-
-    tokens = lex(lines)
-    modules = parse(tokens)
+    modules = scrape_modules(get_course_content("2023_1", "CSC;;1;F"))
     pprint(modules)
