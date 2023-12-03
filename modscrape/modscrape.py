@@ -29,8 +29,17 @@ def extract_options(page: BeautifulSoup, name: str) -> Dict[str, str]:
     return {o.attrs["value"]: o.string.rstrip() for o in select.find_all("option")}
 
 
-def scrape_modules(semester: str, course: str):
-    # scrape modules
+def get_course_content(semester: str, course: str) -> str:
+    """Get course content HTML for the given semester & course.
+
+    See NTU course Content Site for options
+
+    Args:
+        semester: Academic semester to retrieve course content for.
+        course: Course to retrieve course content for.
+    Returns:
+        Course content HTML retrieved from NTU course content site.
+    """
     year, term = semester.split("_")
     with requests.post(
         f"{COURSE_CONTENT_URL}.main_display1",
@@ -48,19 +57,23 @@ def scrape_modules(semester: str, course: str):
             "semester": term,
         },
     ) as response:
-        mod_listing = BeautifulSoup(response.content.decode(), "lxml")
-        # each module is encoded as table
-        mod_tables = mod_listing.find_all("table")
-        # for every table:
-        lines = []
-        for table in mod_tables:
-            individual = []
-            rows = table.find_all("tr")
-            for row in rows:
-                cols = [ele.text.strip() for ele in row.find_all("td")]
-                individual.append(cols)
-            lines.append(individual)
-        return lines
+        return response.content.decode()
+
+
+def scrape_modules(content_html: str):
+    mod_listing = BeautifulSoup(content_html, "lxml")
+    # each module is encoded as table
+    mod_tables = mod_listing.find_all("table")
+    # for every table:
+    lines = []
+    for table in mod_tables:
+        individual = []
+        rows = table.find_all("tr")
+        for row in rows:
+            cols = [ele.text.strip() for ele in row.find_all("td")]
+            individual.append(cols)
+        lines.append(individual)
+    return lines
 
 
 # Takes a nested list and concatenates inner list
@@ -85,7 +98,7 @@ if __name__ == "__main__":
     # scrape courses from main page
     courses = extract_options(mainpage, "r_course_yr")
 
-    lines = scrape_modules("2023_1", "CSC;;1;F")
+    lines = scrape_modules(get_course_content("2023_1", "CSC;;1;F"))
     lines = concat_nested(lines)
     lines = filter_empty(lines)
     lines = [" ".join(line) for line in lines]
