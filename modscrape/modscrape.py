@@ -51,7 +51,6 @@ def scrape_modules(semester: str, course: str):
         mod_listing = BeautifulSoup(response.content.decode(), "lxml")
         # each module is encoded as table
         mod_tables = mod_listing.find_all("table")
-        # print(mod_tables)
         # for every table:
         lines = []
         for table in mod_tables:
