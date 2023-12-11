@@ -263,17 +263,17 @@ class Parser:
         return flatten_tokens(TokenType.IDENTIFIER, module_description)
 
     def au(self) -> Token:
-        number = self.consume(TokenType.NUMBER, "Expected a number to indicate AUs")
-
-        aus = [number]
-        while not self.match(TokenType.AU):
-            token = self.current_token()
-            if not token:
-                raise Exception("Expected token to parse as AU, but no tokens remain.")
-            self.move()
-            aus.append(token)
-
-        return flatten_tokens(TokenType.AU, aus, interval="")
+        # parse AU in the decimal number format <WHOLE>.<DECIMAL>
+        whole = self.consume(
+            TokenType.NUMBER, "Expected a whole number to indicate AUs"
+        )
+        dot = self.consume(
+            TokenType.DOT, "Expected a dot to separate whole & decimal part of AUs"
+        )
+        decimal = self.consume(
+            TokenType.NUMBER, "Expected a decimal number to indicate AUs"
+        )
+        return flatten_tokens(TokenType.AU, [whole, dot, decimal], interval="")
 
     def _mod_and(self) -> list[ModuleCode]:
         current_set = []

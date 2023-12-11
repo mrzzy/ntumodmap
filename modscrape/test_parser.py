@@ -207,6 +207,8 @@ def test_au():
             ParseCase("No number", exception=Exception),
             ParseCase("5 missing token", exception=Exception),
             ParseCase("3.0 AU", Token(TokenType.AU, "3.0"), None),
+            ParseCase("3.5 ADM", Token(TokenType.AU, "3.5"), None),
+            ParseCase("8.0 BIE(CBE)", Token(TokenType.AU, "8.0"), None),
         ],
         method=Parser.au,
     )
