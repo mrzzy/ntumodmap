@@ -51,6 +51,7 @@ def tokens_to_module(
     module_pre_requisite_mods: list[list[ModuleCode]],
     module_mutually_exclusives: list[ModuleCode],
     module_reject_courses: list[Course],
+    module_reject_course_with: list[Course],
 ) -> Module:
     title = module_title.literal
     au = float(module_au.literal)
@@ -58,6 +59,7 @@ def tokens_to_module(
     # TODO: To be filled in
     rejects_modules: list[ModuleCode] = []
     rejects_courses: list[Course] = module_reject_courses
+    rejects_courses_by_year: list[Course] = module_reject_course_with
     allowed_courses: list[Course] = []
     is_bde = False
 
@@ -77,6 +79,7 @@ def tokens_to_module(
         module_pre_requisite_mods,
         rejects_modules,
         rejects_courses,
+        rejects_courses_by_year,
         allowed_courses,
         is_bde,
         module_pass_fail,
@@ -272,8 +275,9 @@ class Parser:
                         # Expect either a number or a "onwards"
                         if self.match_identifier("onwards"):
                             to_year = 9999
-                        elif self.match(TokenType.NUMBER):
+                        elif self.match_no_move(TokenType.NUMBER):
                             to_year = int(self.current_token().literal)
+                            self.move()
                 self.consume(TokenType.RPAREN, "Expected a ')' to close off '('")
 
         return Course(
@@ -282,6 +286,38 @@ class Parser:
             from_year=from_year,
             to_year=to_year,
             alt_course=alt_course_code,
+        )
+
+    # Although this and self.course() both returns Course
+    # They are used in separate contexts and separating their parsing
+    # capabilities here will be easier
+    # This parses for e.g. (Admyr 2011-2020)
+    # Two sample cases for reference
+    # 1: "Admyr 2011-2020"
+    # 2: "Admyr 2011-onwards"
+    def admyr(self) -> Course:
+        from_year = None
+        to_year = None
+        if self.match(TokenType.LPAREN):
+            if self.match_identifier("Admyr"):
+                if self.match_no_move(TokenType.NUMBER):
+                    from_year = int(self.current_token().literal)
+                    self.move()
+                    if self.match(TokenType.DASH):
+                        # Either a numerical to year or "onwards"
+                        if self.match_no_move(TokenType.NUMBER):
+                            to_year = int(self.current_token().literal)
+                        elif self.match_identifier("onwards"):
+                            to_year = 9999
+
+            self.consume(TokenType.RPAREN, "Expected ')' after '(")
+
+        return Course(
+            "Admyr",
+            None,
+            from_year,
+            to_year,
+            None,
         )
 
     def pass_fail(self) -> bool:
@@ -412,10 +448,32 @@ class Parser:
         return courses
 
     def not_available_to_programme_with(self) -> list[Course]:
-        return []
+        if not self.match_consecutive_identifiers(
+            [
+                TokenType.NOT.value,
+                TokenType.AVAIL.value,
+                TokenType.TO.value,
+                TokenType.PROGRAMME.value,
+                TokenType.WITH.value,
+            ]
+        ):
+            return []
+        # There's always a ':' after 'Not available to Programme with'
+        self.consume(
+            TokenType.COLON, "Expected ':' after 'Not available to Programme with'"
+        )
+
+        admyr_courses: list[Course] = []
+        while course := self.admyr():
+            admyr_courses.append(course)
+            if self.current_token().token_type == TokenType.COMMA:
+                self.move()
+            else:
+                break
+        return admyr_courses
 
     def not_offered_as_bde_or_ue(self) -> Optional[Token]:
-        if self.match_consecutive(
+        if self.match_multi(
             [
                 TokenType.NOT,
                 TokenType.OFFERED,
@@ -429,21 +487,14 @@ class Parser:
             return Token(
                 TokenType.NOT_OFFERED_AS_BDE, TokenType.NOT_OFFERED_AS_BDE.value
             )
-        if self.match_consecutive_literals(
+        if self.match_multi(
             [
                 TokenType.NOT,
                 TokenType.OFFERED,
                 TokenType.AS,
                 TokenType.UNRESTRICTED,
                 TokenType.ELECTIVE,
-            ],
-            [
-                TokenType.NOT.value,
-                TokenType.OFFERED.value,
-                TokenType.AS.value,
-                TokenType.UNRESTRICTED.value,
-                TokenType.ELECTIVE.value,
-            ],
+            ]
         ):
             return Token(TokenType.NOT_OFFERED_AS_UE, TokenType.NOT_OFFERED_AS_UE.value)
         return None
@@ -483,6 +534,7 @@ class Parser:
             pre_requisites_mods,
             mutually_exclusives,
             not_available_to_programme,
+            not_available_to_programme_with,
         )
 
         return module
