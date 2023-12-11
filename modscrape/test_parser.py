@@ -26,7 +26,8 @@ def test_tokens_to_module():
         actual = tokens_to_module(
             module_code=code,
             module_title=Token(TokenType.IDENTIFIER, title),
-            module_au=Token(TokenType.AU, "3"),
+            # check that we handle parsing decimal AUs
+            module_au=Token(TokenType.AU, "3.5"),
             module_mutually_exclusives=module_mutually_exclusives,
             module_pre_requisite_year=year,
             module_pre_requisite_mods=module_pre_requisite_mods,
@@ -36,7 +37,7 @@ def test_tokens_to_module():
         expected = Module(
             code=code,
             title=title,
-            au=3,
+            au=3.5,
             mutually_exclusives=module_mutually_exclusives,
             needs_year=None if year is None else int(year.literal),
             needs_modules=module_pre_requisite_mods,
