@@ -68,23 +68,38 @@ def scrape_modules(content_html: str) -> list[Module]:
         content_html: HTML from NTU course countent website to scrape modules from.
     Returns:
         List of scraped modules.
+    Raises:
+        ValueError: If the given HTML contains no <table> element to scrape course content from.
     """
     mod_listing = BeautifulSoup(content_html, "lxml")
-    # each module is encoded as table
-    mod_tables = mod_listing.find_all("table")
-    # for every table:
+    mod_tables = mod_listing.select("table")
+    if len(mod_tables) == 1:
+        # minor, bde & other non core modules: modules is encoded in a single table
+        table = mod_tables[0]
+        mod_rows: list[list[Tag]] = [[]]
+        # skip the first <td> as it contains columns headers
+        for tr in table.select("tr")[1:]:
+            if tr.text.isspace():
+                # <td> with empty newline delimits next module
+                mod_rows.append([])
+            mod_rows[-1].append(tr)
+    elif len(mod_tables) > 1:
+        # core modules: each module is encoded as table
+        mod_rows = [[tr for tr in table.select("tr")] for table in mod_tables]
+    else:
+        raise ValueError("Missing <table> to scrape modules from.")
+
     lines = []
-    for table in mod_tables:
+    for rows in mod_rows:
         individual = []
-        rows = table.find_all("tr")
         for row in rows:
-            cols = [ele.text.strip() for ele in row.find_all("td")]
+            cols = [td.text.strip() for td in cast(Tag, row).children]
             individual.append(cols)
         lines.append(individual)
+
     unnested = concat_nested(lines)
     nonempty = filter_empty(unnested)
     joined = [" ".join(line) for line in nonempty]
-
     tokens = lex(joined)
     modules = parse(tokens)
     return modules
