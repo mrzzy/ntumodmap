@@ -1,0 +1,2 @@
+[codespell]
+skip = ./modscrape/test_resources/*

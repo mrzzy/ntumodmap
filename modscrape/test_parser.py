@@ -26,7 +26,8 @@ def test_tokens_to_module():
         actual = tokens_to_module(
             module_code=code,
             module_title=Token(TokenType.IDENTIFIER, title),
-            module_au=Token(TokenType.AU, "3"),
+            # check that we handle parsing decimal AUs
+            module_au=Token(TokenType.AU, "3.5"),
             module_mutually_exclusives=module_mutually_exclusives,
             module_pre_requisite_year=year,
             module_pre_requisite_mods=module_pre_requisite_mods,
@@ -36,7 +37,7 @@ def test_tokens_to_module():
         expected = Module(
             code=code,
             title=title,
-            au=3,
+            au=3.5,
             mutually_exclusives=module_mutually_exclusives,
             needs_year=None if year is None else int(year.literal),
             needs_modules=module_pre_requisite_mods,
@@ -130,6 +131,19 @@ def test_parser_match_mismatch_no_move(tokens: list[list[Token]]):
     assert parser.position == 0
 
 
+def test_parser_match_au():
+    # check parser does not match if no period is present
+    parser = Parser(lex(["1"]))
+    assert not parser.match_au()
+    assert parser.position == 0
+
+    # check parser matches au
+    for case in ["3.0", ".0", "8.5"]:
+        parser = Parser(lex([case]))
+        assert parser.match_au()
+        assert parser.position == len(case)
+
+
 def test_parser_consume(tokens: list[list[Token]]):
     # wrong token type
     parser = Parser(tokens)
@@ -195,6 +209,17 @@ def test_module_description():
                     "INTRODUCTION TO COMPUTATIONAL THINKING & PROGRAMMING",
                 ),
             ),
+            ParseCase(
+                "INTRODUCTION TO ACADEMIC COMMUNICATION 	.0 AU",
+                Token(
+                    TokenType.IDENTIFIER,
+                    "INTRODUCTION TO ACADEMIC COMMUNICATION",
+                ),
+            ),
+            ParseCase(
+                "MATHEMATICS 1 	3.0 AU",
+                Token(TokenType.IDENTIFIER, "MATHEMATICS 1"),
+            ),
         ],
         method=Parser.module_description,
     )
@@ -206,6 +231,9 @@ def test_au():
             ParseCase("No number", exception=Exception),
             ParseCase("5 missing token", exception=Exception),
             ParseCase("3.0 AU", Token(TokenType.AU, "3.0"), None),
+            ParseCase(".0 AU", Token(TokenType.AU, ".0"), None),
+            ParseCase("3.5 ADM", Token(TokenType.AU, "3.5"), None),
+            ParseCase("8.0 BIE(CBE)", Token(TokenType.AU, "8.0"), None),
         ],
         method=Parser.au,
     )
