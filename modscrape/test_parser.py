@@ -209,6 +209,17 @@ def test_module_description():
                     "INTRODUCTION TO COMPUTATIONAL THINKING & PROGRAMMING",
                 ),
             ),
+            ParseCase(
+                "INTRODUCTION TO ACADEMIC COMMUNICATION 	.0 AU",
+                Token(
+                    TokenType.IDENTIFIER,
+                    "INTRODUCTION TO ACADEMIC COMMUNICATION",
+                ),
+            ),
+            ParseCase(
+                "MATHEMATICS 1 	3.0 AU",
+                Token(TokenType.IDENTIFIER, "MATHEMATICS 1"),
+            ),
         ],
         method=Parser.module_description,
     )
