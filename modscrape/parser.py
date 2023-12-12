@@ -197,6 +197,17 @@ class Parser:
             f"Error: expected {expected_token_type} but received {current_token.token_type}",
         )
 
+    def match_au(self) -> bool:
+        """Matches AU in the format '[WHOLE].<DEICIMAL>'
+        Leading whole number is optional but trailing period & decimal number is required.
+
+        Returns:
+            True if matched, False otherwise
+        """
+        return self.match_consecutive(
+            [TokenType.NUMBER, TokenType.DOT, TokenType.NUMBER]
+        ) or self.match_consecutive([TokenType.DOT, TokenType.NUMBER])
+
     def consume(self, token_type: TokenType, error: str) -> Token:
         try_match = self.match(token_type)
         # If it failed to match: return an error
@@ -335,7 +346,8 @@ class Parser:
         # Parse module name until the numeric AU
         # e.g. Introduction to Computational Thinking
         module_description = []
-        while not self.match_no_move(TokenType.NUMBER):
+        reset_position = self.position
+        while not self.match_au():
             token = self.current_token()
             if token is None:
                 raise Exception(
@@ -343,20 +355,29 @@ class Parser:
                 )
             self.move()
             module_description.append(token)
+            reset_position = self.position
+        # revert position from matching au
+        self.set_position(reset_position)
         return flatten_tokens(TokenType.IDENTIFIER, module_description)
 
     def au(self) -> Token:
-        number = self.consume(TokenType.NUMBER, "Expected a number to indicate AUs")
-
-        aus = [number]
-        while not self.match(TokenType.AU):
-            token = self.current_token()
-            if not token:
-                raise Exception("Expected token to parse as AU, but no tokens remain.")
-            self.move()
-            aus.append(token)
-
-        return flatten_tokens(TokenType.AU, aus, interval="")
+        # parse AU in the decimal number format <WHOLE>.<DECIMAL>
+        tokens = []
+        if self.match_no_move(TokenType.NUMBER):
+            tokens.append(
+                self.consume(
+                    TokenType.NUMBER, "Expected a whole number to indicate AUs"
+                )
+            )
+        tokens.append(
+            self.consume(
+                TokenType.DOT, "Expected a dot to separate whole & decimal part of AUs"
+            )
+        )
+        tokens.append(
+            self.consume(TokenType.NUMBER, "Expected a decimal number to indicate AUs")
+        )
+        return flatten_tokens(TokenType.AU, tokens, interval="")
 
     def _mod_and(self) -> list[ModuleCode]:
         current_set = []
