@@ -18,5 +18,5 @@ def test_scrape_modules_core():
 def test_scrape_modules_minor():
     assert (
         len(scrape_modules(read_text(test_resources, "art_hist_minor_modules.html")))
-        == 18
+        == 30
     )

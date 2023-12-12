@@ -79,10 +79,12 @@ def scrape_modules(content_html: str) -> list[Module]:
         mod_rows: list[list[Tag]] = [[]]
         # skip the first <td> as it contains columns headers
         for tr in table.select("tr")[1:]:
-            if tr.text.isspace():
-                # <td> with empty newline delimits next module
+            # <td> with nbsp (non-breaking space) delimits next module
+            if any([True for td in tr.children if td.text == "\xa0"]):
                 mod_rows.append([])
             mod_rows[-1].append(tr)
+        # exclude empty last row
+        mod_rows = mod_rows[:-1]
     elif len(mod_tables) > 1:
         # core modules: each module is encoded as table
         mod_rows = [[tr for tr in table.select("tr")] for table in mod_tables]
