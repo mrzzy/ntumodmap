@@ -131,6 +131,19 @@ def test_parser_match_mismatch_no_move(tokens: list[list[Token]]):
     assert parser.position == 0
 
 
+def test_parser_match_au():
+    # check parser does not match if no period is present
+    parser = Parser(lex(["1"]))
+    assert not parser.match_au()
+    assert parser.position == 0
+
+    # check parser matches au
+    for case in ["3.0", ".0", "8.5"]:
+        parser = Parser(lex([case]))
+        assert parser.match_au()
+        assert parser.position == len(case)
+
+
 def test_parser_consume(tokens: list[list[Token]]):
     # wrong token type
     parser = Parser(tokens)

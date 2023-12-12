@@ -188,6 +188,17 @@ class Parser:
             repeat(TokenType.IDENTIFIER), token_literals
         )
 
+    def match_au(self) -> bool:
+        """Matches AU in the format '[WHOLE].<DEICIMAL>'
+        Leading whole number is optional but trailing period & decimal number is required.
+
+        Returns:
+            True if matched, False otherwise
+        """
+        return self.match_consecutive(
+            [TokenType.NUMBER, TokenType.DOT, TokenType.NUMBER]
+        ) or self.match_consecutive([TokenType.DOT, TokenType.NUMBER])
+
     def consume(self, token_type: TokenType, error: str) -> Token:
         try_match = self.match(token_type)
         # If it failed to match: return an error
