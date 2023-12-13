@@ -267,18 +267,20 @@ class Parser:
         # Parse module name until the numeric AU
         # e.g. Introduction to Computational Thinking
         module_description = []
-        reset_position = self.position
+        reset_position = current_position = self.position
         while not self.match_au():
             token = self.current_token()
             if token is None:
+                self.set_position(reset_position)
                 raise Exception(
                     "Expected token to parse as module description, but no tokens remain."
                 )
-            self.move()
             module_description.append(token)
-            reset_position = self.position
+
+            self.move()
+            current_position = self.position
         # revert position from matching au
-        self.set_position(reset_position)
+        self.set_position(current_position)
         return flatten_tokens(TokenType.IDENTIFIER, module_description)
 
     def au(self) -> Token:
