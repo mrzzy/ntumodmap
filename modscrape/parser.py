@@ -204,29 +204,6 @@ class Parser:
             [TokenType.NUMBER, TokenType.DOT, TokenType.NUMBER]
         ) or self.match_consecutive([TokenType.DOT, TokenType.NUMBER])
 
-    def raise_error(self, expected_token_type: TokenType) -> Exception:
-        current_token = self.current_token()
-        raise Exception(
-            f"Error: expected {expected_token_type} but received {current_token.token_type}",
-        )
-
-    def match_au(self) -> bool:
-        """Matches AU in the format '[WHOLE].<DEICIMAL>'
-        Leading whole number is optional but trailing period & decimal number is required.
-
-        Returns:
-            True if matched, False otherwise
-        """
-        return self.match_consecutive(
-            [TokenType.NUMBER, TokenType.DOT, TokenType.NUMBER]
-        ) or self.match_consecutive([TokenType.DOT, TokenType.NUMBER])
-
-    def raise_error(self, expected_token_type: TokenType) -> Exception:
-        current_token = self.current_token()
-        raise Exception(
-            f"Error: expected {expected_token_type} but received {current_token.token_type}",
-        )
-
     def consume(self, token_type: TokenType, error: str) -> Token:
         try_match = self.match(token_type)
         # If it failed to match: return an error
@@ -495,7 +472,10 @@ class Parser:
         return courses
 
     def not_available_to_programme_with(self) -> list[Course]:
-        return None
+        return []
+
+    def not_available_to_programme_as_pe_with(self) -> list[Course]:
+        return []
 
     def not_offered_as_bde_or_ue(self) -> Optional[Token]:
         if self.match_consecutive(
@@ -547,10 +527,14 @@ class Parser:
         # Try to match Not available to Programme:
         not_available_to_programme = self.not_available_to_programme()
 
+        # from pprint import pprint
+        # pprint(not_available_to_programme)
+
         # Try to match Not available to Programme with:
-        not_available_to_programme_with = self.not_available_to_programme_with()
+        # not_available_to_programme_with = self.not_available_to_programme_with()
 
         # Try to match Not available as PE to Programme with:
+        # not_available_to_programme_as_pe_with = self.not_available_to_programme_as_pe_with()
 
         # Not offered as BDE or UE
         # not_offered_as_bde_or_ue = self.not_offered_as_bde_or_ue()
@@ -564,7 +548,7 @@ class Parser:
             module_pre_requisite_mods=pre_requisites_mods,
             module_mutually_exclusives=mutually_exclusives,
             module_reject_courses=not_available_to_programme,
-            module_reject_course_with=not_available_to_programme_with,
+            module_reject_course_with=[],
         )
 
         return module
