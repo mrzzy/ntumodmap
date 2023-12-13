@@ -294,6 +294,10 @@ class Parser:
         tokens.append(
             self.consume(TokenType.NUMBER, "Expected a decimal number to indicate AUs")
         )
+
+        # Match the optional AU token
+        self.match(TokenType.AU)
+
         return flatten_tokens(TokenType.AU, tokens, interval="")
 
     def _mod_and(self) -> list[ModuleCode]:
