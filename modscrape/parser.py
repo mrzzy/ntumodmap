@@ -235,7 +235,7 @@ class Parser:
                 module_code.is_corequisite = True
             else:
                 misc = []
-                while not self.match_no_move(TokenType.RPAREN):
+                while not self.match(TokenType.RPAREN):
                     misc_token = self.consume(
                         TokenType.IDENTIFIER, "Expected miscellaneous identifier(s)."
                     )
@@ -249,13 +249,17 @@ class Parser:
         initial_position = self.position
         found = self.match_multi([TokenType.GRADE, TokenType.TYPE])
         if found:
-            self.consume(TokenType.COLON, "Expected ':' after 'Grade Type'")
-            self.consume(TokenType.PASS, "Expected 'Pass' after 'Grade Type:'")
-            self.consume(TokenType.SLASH, "Expected '/' after 'Grade Type: Pass'")
-            self.consume(
-                TokenType.FAIL, "Expected 'Fail' after 'Grade Type: Pass/Fail'"
-            )
-            return True
+            try:
+                self.consume(TokenType.COLON, "Expected ':' after 'Grade Type'")
+                self.consume(TokenType.PASS, "Expected 'Pass' after 'Grade Type:'")
+                self.consume(TokenType.SLASH, "Expected '/' after 'Grade Type: Pass'")
+                self.consume(
+                    TokenType.FAIL, "Expected 'Fail' after 'Grade Type: Pass/Fail'"
+                )
+                return True
+            except Exception as e:
+                self.set_position(initial_position)
+                raise e
         self.set_position(initial_position)
         return False
 

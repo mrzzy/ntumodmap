@@ -207,7 +207,7 @@ def test_parser_pass_fail():
     check_parser(
         cases=[
             # input, return value, exception
-            ParseCase("No match", False),
+            ParseCase("No match", False, position=0),
             ParseCase("Grade Type: Pass/Fail", True),
             ParseCase("Grade Type: Malformed", exception=Exception),
         ],
