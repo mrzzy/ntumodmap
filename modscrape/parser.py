@@ -550,17 +550,6 @@ class Parser:
             module_reject_course_with=not_available_to_programme_with,
         )
 
-        # module = tokens_to_module(
-        #     module_code,
-        #     module_description,
-        #     module_au,
-        #     pass_fail,  # module pass fail
-        #     pre_requisites_year,
-        #     pre_requisites_mods,
-        #     mutually_exclusives,
-        #     [not_available_to_programme],
-        # )
-
         return module
 
     def parse(self) -> list[Module]:
