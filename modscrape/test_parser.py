@@ -188,6 +188,23 @@ def test_parser_consume(tokens: list[list[Token]]):
         parser.consume_multi([TokenType.IDENTIFIER], "end of string")
 
 
+def test_parser_mischellaneous():
+    check_parser(
+        cases=[
+            ParseCase("No match", exception=Exception),
+            ParseCase("No match)", exception=Exception),
+            ParseCase("(No match", exception=Exception),
+            ParseCase("()", ""),
+            ParseCase("(match this) not this", "match this", position=4),
+            # check non identifier tokens are considered miscellaneous if
+            # surrounded by parenthesis
+            ParseCase("(Grade this) not this", "Grade this", position=4),
+            ParseCase("(Type this) not this", "Type this", position=4),
+        ],
+        method=Parser.miscellaneous,
+    )
+
+
 def test_parser_module_code():
     check_parser(
         cases=[
@@ -215,7 +232,7 @@ def test_parser_pass_fail():
     )
 
 
-def test_module_description():
+def test_parser_module_description():
     check_parser(
         cases=[
             ParseCase("No match", exception=Exception),
@@ -245,21 +262,21 @@ def test_module_description():
     )
 
 
-def test_au():
+def test_parser_au():
     check_parser(
         cases=[
             ParseCase("No number", exception=Exception),
             ParseCase("5 missing token", exception=Exception),
-            ParseCase("3.0 AU", Token(TokenType.AU, "3.0"), None),
-            ParseCase(".0 AU", Token(TokenType.AU, ".0"), None),
-            ParseCase("3.5 ADM", Token(TokenType.AU, "3.5"), None),
-            ParseCase("8.0 BIE(CBE)", Token(TokenType.AU, "8.0"), None),
+            ParseCase("3.0 AU", Token(TokenType.AU, "3.0")),
+            ParseCase(".0 AU", Token(TokenType.AU, ".0")),
+            ParseCase("3.5 ADM", Token(TokenType.AU, "3.5")),
+            ParseCase("8.0 BIE(CBE)", Token(TokenType.AU, "8.0")),
         ],
         method=Parser.au,
     )
 
 
-def test_pre_requisite_year():
+def test_parser_pre_requisite_year():
     check_parser(
         cases=[
             ParseCase("", None),
@@ -275,7 +292,7 @@ def test_pre_requisite_year():
     )
 
 
-def test_pre_requisite_mods():
+def test_parser_pre_requisite_mods():
     check_parser(
         cases=[
             ParseCase("", []),
@@ -299,7 +316,7 @@ def test_pre_requisite_mods():
     )
 
 
-def test_mutally_exclusive():
+def test_parser_mutally_exclusive():
     check_parser(
         cases=[
             ParseCase("", []),

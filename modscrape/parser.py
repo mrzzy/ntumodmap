@@ -222,6 +222,28 @@ class Parser:
         # desired tokens was just matched, so retrieving previous should not return None
         return cast(Token, self.previous_token())
 
+    def miscellaneous(self) -> str:
+        """Parse miscellaneous content in parenthesis eg. '(CBE)' -> 'CBE'.
+        Returns:l
+            Miscellaneous contained within the parenthesis, without the
+            surrounding parenthesis.
+        """
+        reset_position = self.position
+        try:
+            self.consume(
+                TokenType.LPAREN,
+                "Expected miscellaneous to start with a left parenthesis",
+            )
+            misc = []
+            while not self.match(TokenType.RPAREN):
+                # parse any token within parenthesis as miscellaneous
+                misc.append(cast(Token, self.current_token()).literal)
+                self.position += 1
+        except Exception as e:
+            self.set_position(reset_position)
+            raise e
+        return " ".join(misc)
+
     def module_code(self) -> ModuleCode:
         # e.g. CB1131, SC1005, SC1007
         module_code_token = self.consume(
@@ -230,17 +252,13 @@ class Parser:
         module_code = ModuleCode(module_code_token.literal)
 
         # If the module code is e.g. 'MH1812(Corequisite)', this will catch that and parse it in
-        if self.match(TokenType.LPAREN):
-            if self.match_consecutive([TokenType.COREQ, TokenType.RPAREN]):
+        if self.match_no_move(TokenType.LPAREN):
+            if self.match_consecutive(
+                [TokenType.LPAREN, TokenType.COREQ, TokenType.RPAREN]
+            ):
                 module_code.is_corequisite = True
             else:
-                misc = []
-                while not self.match(TokenType.RPAREN):
-                    misc_token = self.consume(
-                        TokenType.IDENTIFIER, "Expected miscellaneous identifier(s)."
-                    )
-                    misc.append(misc_token.literal)
-                module_code.misc = " ".join(misc)
+                module_code.misc = self.miscellaneous()
 
         # module_code can be (None | ModuleCode(CB1131))
         return module_code
@@ -284,25 +302,35 @@ class Parser:
         return flatten_tokens(TokenType.IDENTIFIER, module_description)
 
     def au(self) -> Token:
+        reset_position = self.position
         # parse AU in the decimal number format <WHOLE>.<DECIMAL>
         tokens = []
-        if self.match_no_move(TokenType.NUMBER):
+        if self.match(TokenType.NUMBER):
+            # previous token is not none as we just matched it
+            tokens.append(cast(Token, self.previous_token()))
+        try:
             tokens.append(
                 self.consume(
-                    TokenType.NUMBER, "Expected a whole number to indicate AUs"
+                    TokenType.DOT,
+                    "Expected a dot to separate whole & decimal part of AUs",
                 )
             )
-        tokens.append(
-            self.consume(
-                TokenType.DOT, "Expected a dot to separate whole & decimal part of AUs"
+            tokens.append(
+                self.consume(
+                    TokenType.NUMBER, "Expected a decimal number to indicate AUs"
+                )
             )
-        )
-        tokens.append(
-            self.consume(TokenType.NUMBER, "Expected a decimal number to indicate AUs")
-        )
+        except Exception as e:
+            self.set_position(reset_position)
+            raise e
 
-        # Match the optional AU token
-        self.match(TokenType.AU)
+        # match the AU or school name suffix
+        has_suffix = self.match(TokenType.AU) or self.match(TokenType.IDENTIFIER)
+        if self.match_no_move(TokenType.LPAREN):
+            self.miscellaneous()
+        if not has_suffix:
+            self.set_position(reset_position)
+            raise Exception("Expected a AU or school name suffix after AU.")
 
         return flatten_tokens(TokenType.AU, tokens, interval="")
 
