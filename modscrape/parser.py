@@ -98,8 +98,12 @@ class Parser:
     def set_position(self, position):
         self.position = position
 
-    def current_token(self, peek=0) -> Token:
-        return self.tokens[self.paragraph][self.position + peek]
+    def current_token(self) -> Optional[Token]:
+        # current if current tokens within bounds
+        is_out_bounds = self.paragraph >= len(self.tokens) or self.position >= len(
+            self.tokens[self.paragraph]
+        )
+        return None if is_out_bounds else self.tokens[self.paragraph][self.position]
 
     def previous_token(self) -> Optional[Token]:
         """
@@ -184,12 +188,21 @@ class Parser:
         return True
 
     def match_consecutive_identifiers(self, token_literals: list[str]) -> bool:
-        initial_position = self.position
-        for token_literal in token_literals:
-            if not self.match_identifier(token_literal):
-                self.set_position(initial_position)
-                return False
-        return True
+        """Given list of token literals, checks that tokens are identifiers and the literals match in order."""
+        return self.match_consecutive_literals(
+            repeat(TokenType.IDENTIFIER), token_literals
+        )
+
+    def match_au(self) -> bool:
+        """Matches AU in the format '[WHOLE].<DEICIMAL>'
+        Leading whole number is optional but trailing period & decimal number is required.
+
+        Returns:
+            True if matched, False otherwise
+        """
+        return self.match_consecutive(
+            [TokenType.NUMBER, TokenType.DOT, TokenType.NUMBER]
+        ) or self.match_consecutive([TokenType.DOT, TokenType.NUMBER])
 
     def raise_error(self, expected_token_type: TokenType) -> Exception:
         current_token = self.current_token()
@@ -218,7 +231,11 @@ class Parser:
         try_match = self.match(token_type)
         # If it failed to match: return an error
         if not try_match:
-            self.raise_error(token_type)
+            current_token = self.current_token()
+            received = "no token" if current_token is None else current_token.token_type
+            raise Exception(
+                f"Error: expected {token_type} but received {received}",
+            )
         # desired tokens was just matched, so retrieving previous should not return None
         return cast(Token, self.previous_token())
 
