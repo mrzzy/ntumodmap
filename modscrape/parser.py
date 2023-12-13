@@ -256,7 +256,6 @@ class Parser:
         # module_code can be (None | ModuleCode(CB1131))
         return module_code
 
-<<<<<<< HEAD
     def course(self) -> Course:
         # TODO: Concatenate the course code into one,
         # can possible be MS-2ndMaj/Spec, which is multiple identifier tokens
@@ -456,83 +455,6 @@ class Parser:
 
         return exclusive_mods
 
-<<<<<<< HEAD
-    def not_available_to_programme(self) -> list[Course]:
-        if not self.match_consecutive_identifiers(
-            [
-                TokenType.NOT.value,
-                TokenType.AVAIL.value,
-                TokenType.TO.value,
-                TokenType.PROGRAMME.value,
-            ]
-        ):
-            return []
-        # There's always a ':' after 'Not available to Programme'
-        self.consume(TokenType.COLON, "Expected ':' after 'Not available to Programme'")
-
-        courses: list[Course] = []
-        while course := self.course():
-            courses.append(course)
-            if self.current_token().token_type == TokenType.COMMA:
-                self.move()
-            else:
-                break
-        return courses
-
-    def not_available_to_programme_with(self) -> list[Course]:
-        if not self.match_consecutive_identifiers(
-            [
-                TokenType.NOT.value,
-                TokenType.AVAIL.value,
-                TokenType.TO.value,
-                TokenType.PROGRAMME.value,
-                TokenType.WITH.value,
-            ]
-        ):
-            return []
-        # There's always a ':' after 'Not available to Programme with'
-        self.consume(
-            TokenType.COLON, "Expected ':' after 'Not available to Programme with'"
-        )
-
-        admyr_courses: list[Course] = []
-        while course := self.admyr():
-            admyr_courses.append(course)
-            if self.current_token().token_type == TokenType.COMMA:
-                self.move()
-            else:
-                break
-        return admyr_courses
-
-    def not_offered_as_bde_or_ue(self) -> Optional[Token]:
-        if self.match_multi(
-            [
-                TokenType.NOT,
-                TokenType.OFFERED,
-                TokenType.AS,
-                TokenType.BROADENING,
-                TokenType.IDENTIFIER,
-                TokenType.DEEPENING,
-                TokenType.ELECTIVE,
-            ]
-        ):
-            return Token(
-                TokenType.NOT_OFFERED_AS_BDE, TokenType.NOT_OFFERED_AS_BDE.value
-            )
-        if self.match_multi(
-            [
-                TokenType.NOT,
-                TokenType.OFFERED,
-                TokenType.AS,
-                TokenType.UNRESTRICTED,
-                TokenType.ELECTIVE,
-            ]
-        ):
-            return Token(TokenType.NOT_OFFERED_AS_UE, TokenType.NOT_OFFERED_AS_UE.value)
-        return None
-
-||||||| parent of f24a682 (Parse "Not available to programme:" section)
-=======
     def not_available_to_programme(self) -> list[Course]:
         if not self.match_consecutive_identifiers(
             [
@@ -592,7 +514,6 @@ class Parser:
             return Token(TokenType.NOT_OFFERED_AS_UE, TokenType.NOT_OFFERED_AS_UE.value)
         return None
 
->>>>>>> f24a682 (Parse "Not available to programme:" section)
     def module(self) -> Optional[Module]:
         module_code = self.module_code()
         module_description = self.module_description()
@@ -606,22 +527,6 @@ class Parser:
         # Try to match for mutually exclusives
         mutually_exclusives = self.mutually_exclusive()
 
-<<<<<<< HEAD
-        # Try to match Not available to Programme:
-        not_available_to_programme = self.not_available_to_programme()
-
-        # Try to match Not available to Programme with:
-        # This one specifically matches for Admyr-*
-        not_available_to_programme_with = self.not_available_to_programme_with()
-
-        # Try to match Not available as PE to Programme with:
-        # Note that PE stands for Prescribed Elective
-
-        # Not offered as BDE or UE
-        # not_offered_as_bde_or_ue = self.not_offered_as_bde_or_ue()
-
-||||||| parent of f24a682 (Parse "Not available to programme:" section)
-=======
         # Try to match Not available to Programme:
         not_available_to_programme = self.not_available_to_programme()
 
@@ -633,25 +538,28 @@ class Parser:
         # Not offered as BDE or UE
         # not_offered_as_bde_or_ue = self.not_offered_as_bde_or_ue()
 
->>>>>>> f24a682 (Parse "Not available to programme:" section)
         module = tokens_to_module(
-            module_code,
-            module_description,
-            module_au,
-            pass_fail,  # module pass fail
-            pre_requisites_year,
-            pre_requisites_mods,
-<<<<<<< HEAD
-            mutually_exclusives,
-            not_available_to_programme,
-            not_available_to_programme_with,
-||||||| parent of f24a682 (Parse "Not available to programme:" section)
-            pass_fail,  # module pass fail
-=======
-            mutually_exclusives,
-            [not_available_to_programme],
->>>>>>> f24a682 (Parse "Not available to programme:" section)
+            module_code=module_code,
+            module_title=module_description,
+            module_au=module_au,
+            module_pass_fail=pass_fail,
+            module_pre_requisite_year=pre_requisites_year,
+            module_pre_requisite_mods=pre_requisites_mods,
+            module_mutually_exclusives=mutually_exclusives,
+            module_reject_courses=not_available_to_programme,
+            module_reject_course_with=not_available_to_programme_with,
         )
+
+        # module = tokens_to_module(
+        #     module_code,
+        #     module_description,
+        #     module_au,
+        #     pass_fail,  # module pass fail
+        #     pre_requisites_year,
+        #     pre_requisites_mods,
+        #     mutually_exclusives,
+        #     [not_available_to_programme],
+        # )
 
         return module
 
