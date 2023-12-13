@@ -58,22 +58,39 @@ class ParseCase:
     - text: The text to feed to the parser.
     - expected: If set, the expected parsing result to receive from the parser.
     - exception: If set, an exception of this type should be raised.
+    - position: If set, how many tokens the parser should shift its inputs.
+        By default this is set to the number of tokens in the text input or 0
+        if exception is set.
     """
 
     text: str
     expected: Optional[Any] = None
     exception: Optional[Type[Exception]] = None
+    position: Optional[int] = None
+
+    def __post_init__(self):
+        # called after __init__()
+        self.tokens = lex([self.text])
+        if self.position is not None:
+            self.n_shifts = self.position
+        elif self.exception is not None:
+            self.n_shifts = 0
+        else:
+            self.n_shifts = len(self.tokens[0])
 
 
 def check_parser(cases: Iterable[ParseCase], method: Callable[[Parser], Any]):
     """Check that calling method on Parser passes the given ParseCases."""
     for case in cases:
-        parser = Parser(lex([case.text]))
+        parser = Parser(case.tokens)
+        # check parser functionality
         if case.exception is not None:
             with pytest.raises(case.exception):
                 method(parser)
-            continue
-        assert method(parser) == case.expected
+        else:
+            assert method(parser) == case.expected
+        # check parser position
+        assert parser.position == case.n_shifts
 
 
 @pytest.fixture
