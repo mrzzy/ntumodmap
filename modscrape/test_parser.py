@@ -298,7 +298,7 @@ def test_parser_pre_requisite_mods():
             ParseCase("", []),
             # no comma after prerequisite
             ParseCase("Prerequisite", exception=Exception),
-            ParseCase("Prerequisite:", []),
+            ParseCase("Prerequisite:", [], position=0),
             ParseCase(
                 text="Prerequisite: CZ1007 & CZ2001(Corequisite)"
                 " OR CE1007 & CE2001(Corequisite)"

@@ -379,7 +379,11 @@ class Parser:
         initial_position = self.position
         if not self.match(TokenType.PREREQ):
             return []
-        self.consume(TokenType.COLON, 'Expect colon after "Prerequisite"')
+        try:
+            self.consume(TokenType.COLON, 'Expect colon after "Prerequisite"')
+        except Exception as e:
+            self.set_position(initial_position)
+            raise e
 
         # This can either be a module prerequisite or a year pre-requisite
         if self.match_no_move(TokenType.MODULE_CODE):
