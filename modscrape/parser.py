@@ -236,7 +236,7 @@ class Parser:
             )
             misc = []
             while not self.match(TokenType.RPAREN):
-                # parse any token within parenthesis as miscellaneous
+                # match any token within parenthesis as miscellaneous
                 misc.append(cast(Token, self.current_token()).literal)
                 self.position += 1
         except Exception as e:
@@ -346,24 +346,29 @@ class Parser:
         initial_position = self.position
         if not self.match(TokenType.PREREQ):
             return None
-        self.consume(TokenType.COLON, 'Expect colon after "Prerequisite"')
+        try:
+            self.consume(TokenType.COLON, 'Expect colon after "Prerequisite"')
 
-        # Within the year prerequisites, there are two formats
-        # 1) Prerequisite: Year 3 standing
-        # 2) Prerequisite: Study Year 3 standing
-        # Note that I have not been able to find any nesting of years, i.e. Year 2 & Year 3 standing
-        if self.match_identifier("Year") or self.match_identifier("Study"):
-            # This moves past both Year and Study Year
-            previous_token = self.previous_token()
-            if previous_token is not None and previous_token.literal == "Study":
-                self.move()
-            year = self.consume(
-                TokenType.NUMBER, "Expected a number after Year/Study Year"
-            )
-            self.consume(
-                TokenType.STANDING, f"Expected a standing after Year/Study Year {year}"
-            )
-            return year
+            # Within the year prerequisites, there are two formats
+            # 1) Prerequisite: Year 3 standing
+            # 2) Prerequisite: Study Year 3 standing
+            # Note that I have not been able to find any nesting of years, i.e. Year 2 & Year 3 standing
+            if self.match_identifier("Year") or self.match_identifier("Study"):
+                # This moves past both Year and Study Year
+                previous_token = self.previous_token()
+                if previous_token is not None and previous_token.literal == "Study":
+                    self.move()
+                year = self.consume(
+                    TokenType.NUMBER, "Expected a number after Year/Study Year"
+                )
+                self.consume(
+                    TokenType.STANDING,
+                    f"Expected a standing after Year/Study Year {year}",
+                )
+                return year
+        except Exception as e:
+            self.set_position(initial_position)
+            raise e
 
         self.set_position(initial_position)
         return None

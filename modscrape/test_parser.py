@@ -282,7 +282,7 @@ def test_parser_pre_requisite_year():
             ParseCase("", None),
             # no comma after prerequisite
             ParseCase("Prerequisite", exception=Exception),
-            ParseCase("Prerequisite:", None),
+            ParseCase("Prerequisite:", None, position=0),
             ParseCase("Prerequisite: Year 3 standing", Token(TokenType.NUMBER, "3")),
             ParseCase(
                 "Prerequisite: Study Year 4 standing", Token(TokenType.NUMBER, "4")
