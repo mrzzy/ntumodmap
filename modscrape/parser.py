@@ -398,12 +398,19 @@ class Parser:
         return []
 
     def mutually_exclusive(self) -> list[ModuleCode]:
+        initial_position = self.position
         # If it does not start with "Mutually exclusive with"
         if not self.match_consecutive_identifiers(
             [TokenType.MUTUALLY.value, TokenType.EXCLUSIVE.value, TokenType.WITH.value]
         ):
             return []
-        self.consume(TokenType.COLON, 'Expected colon after "Mutually Exclusive with"')
+        try:
+            self.consume(
+                TokenType.COLON, 'Expected colon after "Mutually Exclusive with"'
+            )
+        except Exception as e:
+            self.set_position(initial_position)
+            raise e
 
         exclusive_mods = []
         while self.match_no_move(TokenType.MODULE_CODE):
