@@ -58,7 +58,7 @@ def tokens_to_module(
 
     # TODO: To be filled in
     rejects_modules: list[ModuleCode] = []
-    rejects_courses: list[Course] = []
+    rejects_courses: list[Course] = module_reject_courses
     allowed_courses: list[Course] = []
     is_bde = False
 
@@ -563,7 +563,7 @@ class Parser:
             module_mutually_exclusives=mutually_exclusives,
             module_pre_requisite_year=pre_requisites_year,
             module_pre_requisite_mods=pre_requisites_mods,
-            module_reject_courses=[],
+            module_reject_courses=not_available_to_programme,
             module_is_bde=False,
             module_pass_fail=pass_fail,  # module pass fail
         )
