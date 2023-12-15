@@ -550,13 +550,13 @@ class Parser:
         not_available_to_programme = self.not_available_to_programme()
 
         module = tokens_to_module(
-            module_code,
-            module_description,
-            module_au,
-            mutually_exclusives,
-            pre_requisites_year,
-            pre_requisites_mods,
-            pass_fail,  # module pass fail
+            module_code=module_code,
+            module_title=module_description,
+            module_au=module_au,
+            module_mutually_exclusives=mutually_exclusives,
+            module_pre_requisite_year=pre_requisites_year,
+            module_pre_requisite_mods=pre_requisites_mods,
+            module_pass_fail=pass_fail,  # module pass fail
         )
 
         return module
