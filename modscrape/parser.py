@@ -245,6 +245,85 @@ class Parser:
         # module_code can be (None | ModuleCode(CB1131))
         return module_code
 
+    def course(self) -> Course:
+        # TODO: Concatenate the course code into one,
+        # can possible be MS-2ndMaj/Spec, which is multiple identifier tokens
+        course_code = self.consume(
+            TokenType.IDENTIFIER, "Expected an identifier for a course"
+        )
+
+        alt_course_code = None
+        from_year = None
+        to_year = None
+        is_direct_entry = None
+
+        # Possible cases: ENG(ENE)(2018-onwards)
+        # There are up to 3 possible parenthesis here - just match them all
+        for _ in range(3):
+            if self.match(TokenType.LPAREN):
+                # Check for alternate representations
+                if self.match_consecutive_identifiers(["Direct", "Entry"]):
+                    is_direct_entry = True
+                elif self.match_consecutive_identifiers(["Non", "Direct", "Entry"]):
+                    is_direct_entry = False
+                elif self.match(TokenType.IDENTIFIER):
+                    previous_token = cast(Token, self.previous_token())
+                    alt_course_code = previous_token.literal
+                    # Close off the parenthesis
+                elif self.match(TokenType.NUMBER):
+                    previous_token = cast(Token, self.previous_token())
+                    from_year = int(previous_token.literal)
+                    # Optional dash
+                    if self.match(TokenType.DASH):
+                        # Expect either a number or a "onwards"
+                        if self.match_identifier("onwards"):
+                            to_year = 9999
+                        elif self.match_no_move(TokenType.NUMBER):
+                            to_year = int(self.current_token().literal)
+                            self.move()
+                self.consume(TokenType.RPAREN, "Expected a ')' to close off '('")
+
+        return Course(
+            course=course_code.literal,
+            is_direct_entry=None,
+            from_year=from_year,
+            to_year=to_year,
+            alt_course=alt_course_code,
+        )
+
+        # Although this and self.course() both returns Course
+
+    # They are used in separate contexts and separating their parsing
+    # capabilities here will be easier
+    # This parses for e.g. (Admyr 2011-2020)
+    # Two sample cases for reference
+    # 1: "Admyr 2011-2020"
+    # 2: "Admyr 2011-onwards"
+    def admyr(self) -> Course:
+        from_year = None
+        to_year = None
+        if self.match(TokenType.LPAREN):
+            if self.match_identifier("Admyr"):
+                if self.match_no_move(TokenType.NUMBER):
+                    from_year = int(self.current_token().literal)
+                    self.move()
+                    if self.match(TokenType.DASH):
+                        # Either a numerical to year or "onwards"
+                        if self.match_no_move(TokenType.NUMBER):
+                            to_year = int(self.current_token().literal)
+                        elif self.match_identifier("onwards"):
+                            to_year = 9999
+
+            self.consume(TokenType.RPAREN, "Expected ')' after '(")
+
+        return Course(
+            "Admyr",
+            None,
+            from_year,
+            to_year,
+            None,
+        )
+
     def pass_fail(self) -> bool:
         initial_position = self.position
         found = self.match_multi([TokenType.GRADE, TokenType.TYPE])
@@ -370,6 +449,90 @@ class Parser:
 
         return exclusive_mods
 
+    def not_available_to_programme(self) -> list[Course]:
+        if not self.match_consecutive_identifiers(
+            [
+                TokenType.NOT.value,
+                TokenType.AVAIL.value,
+                TokenType.TO.value,
+                TokenType.PROGRAMME.value,
+            ]
+        ):
+            return []
+        # There's always a ':' after 'Not available to Programme'
+        self.consume(TokenType.COLON, "Expected ':' after 'Not available to Programme'")
+
+        courses: list[Course] = []
+        while course := self.course():
+            courses.append(course)
+            current_token = self.current_token()
+            if current_token is None:
+                raise Exception(
+                    "Expected a token while parsing courses, but no tokens remain."
+                )
+            if current_token.token_type == TokenType.COMMA:
+                self.move()
+            else:
+                break
+        return courses
+
+    def not_available_to_programme_with(self) -> list[Course]:
+        if not self.match_consecutive_identifiers(
+            [
+                TokenType.NOT.value,
+                TokenType.AVAIL.value,
+                TokenType.TO.value,
+                TokenType.PROGRAMME.value,
+                TokenType.WITH.value,
+            ]
+        ):
+            return []
+        # There's always a ':' after 'Not available to Programme with'
+        self.consume(
+            TokenType.COLON, "Expected ':' after 'Not available to Programme with'"
+        )
+
+        admyr_courses: list[Course] = []
+        while course := self.admyr():
+            admyr_courses.append(course)
+            current_token = self.current_token()
+            if current_token is None:
+                raise Exception(
+                    "Expected a token while parsing courses, but no tokens remain."
+                )
+            if current_token.token_type == TokenType.COMMA:
+                self.move()
+            else:
+                break
+        return admyr_courses
+
+    def not_offered_as_bde_or_ue(self) -> Optional[Token]:
+        if self.match_multi(
+            [
+                TokenType.NOT,
+                TokenType.OFFERED,
+                TokenType.AS,
+                TokenType.BROADENING,
+                TokenType.IDENTIFIER,
+                TokenType.DEEPENING,
+                TokenType.ELECTIVE,
+            ]
+        ):
+            return Token(
+                TokenType.NOT_OFFERED_AS_BDE, TokenType.NOT_OFFERED_AS_BDE.value
+            )
+        if self.match_multi(
+            [
+                TokenType.NOT,
+                TokenType.OFFERED,
+                TokenType.AS,
+                TokenType.UNRESTRICTED,
+                TokenType.ELECTIVE,
+            ]
+        ):
+            return Token(TokenType.NOT_OFFERED_AS_UE, TokenType.NOT_OFFERED_AS_UE.value)
+        return None
+
     def module(self) -> Optional[Module]:
         module_code = self.module_code()
         module_description = self.module_description()
@@ -382,6 +545,9 @@ class Parser:
 
         # Try to match for mutually exclusives
         mutually_exclusives = self.mutually_exclusive()
+
+        # Try to match for not available to programme
+        not_available_to_programme = self.not_available_to_programme()
 
         module = tokens_to_module(
             module_code,
