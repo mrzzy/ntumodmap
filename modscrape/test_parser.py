@@ -279,7 +279,7 @@ def test_pre_requisite_mods():
     )
 
 
-def test_mutally_exclusive():
+def test_mutually_exclusive():
     check_parser(
         cases=[
             ParseCase("", []),
