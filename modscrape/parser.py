@@ -49,6 +49,8 @@ def tokens_to_module(
     module_mutually_exclusives: list[ModuleCode],
     module_pre_requisite_year: Optional[Token],
     module_pre_requisite_mods: list[list[ModuleCode]],
+    module_reject_courses: list[Course],
+    module_is_bde: bool,
     module_pass_fail: bool,
 ) -> Module:
     title = module_title.literal
@@ -556,6 +558,8 @@ class Parser:
             module_mutually_exclusives=mutually_exclusives,
             module_pre_requisite_year=pre_requisites_year,
             module_pre_requisite_mods=pre_requisites_mods,
+            module_reject_courses=[],
+            module_is_bde=False,
             module_pass_fail=pass_fail,  # module pass fail
         )
 
