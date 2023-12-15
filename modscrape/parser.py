@@ -289,7 +289,7 @@ class Parser:
 
         return Course(
             course=course_code.literal,
-            is_direct_entry=None,
+            is_direct_entry=is_direct_entry,
             from_year=from_year,
             to_year=to_year,
             alt_course=alt_course_code,
