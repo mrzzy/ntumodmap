@@ -46,6 +46,7 @@ class Module:
     needs_modules: list[list[ModuleCode]]
     rejects_modules: list[ModuleCode]
     rejects_courses: list[Course]
+    rejects_courses_with: list[Course]
     allowed_courses: list[Course]
     is_bde: bool
     is_pass_fail: bool

@@ -50,6 +50,7 @@ def tokens_to_module(
     module_pre_requisite_year: Optional[Token],
     module_pre_requisite_mods: list[list[ModuleCode]],
     module_reject_courses: list[Course],
+    module_reject_courses_with: list[Course],
     module_is_bde: bool,
     module_pass_fail: bool,
 ) -> Module:
@@ -59,6 +60,7 @@ def tokens_to_module(
     # TODO: To be filled in
     rejects_modules: list[ModuleCode] = []
     rejects_courses: list[Course] = module_reject_courses
+    rejects_courses_with: list[Course] = module_reject_courses_with
     allowed_courses: list[Course] = []
     is_bde = False
 
@@ -76,6 +78,7 @@ def tokens_to_module(
         module_pre_requisite_mods,
         rejects_modules,
         rejects_courses,
+        rejects_courses_with,
         allowed_courses,
         is_bde,
         module_pass_fail,
@@ -318,6 +321,7 @@ class Parser:
                             # Matched beforehand, will never be none
                             current_token = cast(Token, self.current_token())
                             to_year = int(current_token.literal)
+                            self.move()
                         elif self.match_identifier("onwards"):
                             to_year = 9999
 
@@ -489,6 +493,7 @@ class Parser:
                 TokenType.NOT.value,
                 TokenType.AVAIL.value,
                 TokenType.TO.value,
+                TokenType.ALL.value,
                 TokenType.PROGRAMME.value,
                 TokenType.WITH.value,
             ]
@@ -501,6 +506,12 @@ class Parser:
 
         admyr_courses: list[Course] = []
         while course := self.admyr():
+            # The case where it parses nothing,
+            # If the source text has an additional ',' at the end, it will try to parse
+            # what comes after that, but nothing will be parsed, but an course object
+            # will be returned, if it's a dud, we just check the important from_year
+            if course.from_year == None:
+                break
             admyr_courses.append(course)
             current_token = self.current_token()
             if current_token is None:
@@ -555,6 +566,7 @@ class Parser:
 
         # Try to match for not available to programme
         not_available_to_programme = self.not_available_to_programme()
+        not_available_to_programme_with = self.not_available_to_programme_with()
 
         module = tokens_to_module(
             module_code=module_code,
@@ -564,6 +576,7 @@ class Parser:
             module_pre_requisite_year=pre_requisites_year,
             module_pre_requisite_mods=pre_requisites_mods,
             module_reject_courses=not_available_to_programme,
+            module_reject_courses_with=not_available_to_programme_with,
             module_is_bde=False,
             module_pass_fail=pass_fail,  # module pass fail
         )

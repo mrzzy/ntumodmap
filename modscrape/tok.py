@@ -30,6 +30,7 @@ class TokenType(Enum):
     NOT = "Not"
     AVAIL = "available"
     TO = "to"
+    ALL = "all"
     PROGRAMME = "Programme"
     AS = "as"
     PE = "PE"
