@@ -281,7 +281,9 @@ class Parser:
                         if self.match_identifier("onwards"):
                             to_year = 9999
                         elif self.match_no_move(TokenType.NUMBER):
-                            to_year = int(self.current_token().literal)
+                            # Matched beforehand, will never be none
+                            current_token = cast(Token, self.current_token())
+                            to_year = int(current_token.literal)
                             self.move()
                 self.consume(TokenType.RPAREN, "Expected a ')' to close off '('")
 
@@ -307,12 +309,15 @@ class Parser:
         if self.match(TokenType.LPAREN):
             if self.match_identifier("Admyr"):
                 if self.match_no_move(TokenType.NUMBER):
-                    from_year = int(self.current_token().literal)
+                    current_token = cast(Token, self.current_token())
+                    from_year = int(current_token.literal)
                     self.move()
                     if self.match(TokenType.DASH):
                         # Either a numerical to year or "onwards"
                         if self.match_no_move(TokenType.NUMBER):
-                            to_year = int(self.current_token().literal)
+                            # Matched beforehand, will never be none
+                            current_token = cast(Token, self.current_token())
+                            to_year = int(current_token.literal)
                         elif self.match_identifier("onwards"):
                             to_year = 9999
 
