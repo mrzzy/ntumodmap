@@ -222,6 +222,28 @@ class Parser:
         # desired tokens was just matched, so retrieving previous should not return None
         return cast(Token, self.previous_token())
 
+    def miscellaneous(self) -> str:
+        """Parse miscellaneous content in parenthesis eg. '(CBE)' -> 'CBE'.
+        Returns:l
+            Miscellaneous contained within the parenthesis, without the
+            surrounding parenthesis.
+        """
+        reset_position = self.position
+        try:
+            self.consume(
+                TokenType.LPAREN,
+                "Expected miscellaneous to start with a left parenthesis",
+            )
+            misc = []
+            while not self.match(TokenType.RPAREN):
+                # match any token within parenthesis as miscellaneous
+                misc.append(cast(Token, self.current_token()).literal)
+                self.position += 1
+        except Exception as e:
+            self.set_position(reset_position)
+            raise e
+        return " ".join(misc)
+
     def module_code(self) -> ModuleCode:
         # e.g. CB1131, SC1005, SC1007
         module_code_token = self.consume(
@@ -230,17 +252,13 @@ class Parser:
         module_code = ModuleCode(module_code_token.literal)
 
         # If the module code is e.g. 'MH1812(Corequisite)', this will catch that and parse it in
-        if self.match(TokenType.LPAREN):
-            if self.match_consecutive([TokenType.COREQ, TokenType.RPAREN]):
+        if self.match_no_move(TokenType.LPAREN):
+            if self.match_consecutive(
+                [TokenType.LPAREN, TokenType.COREQ, TokenType.RPAREN]
+            ):
                 module_code.is_corequisite = True
             else:
-                misc = []
-                while not self.match_no_move(TokenType.RPAREN):
-                    misc_token = self.consume(
-                        TokenType.IDENTIFIER, "Expected miscellaneous identifier(s)."
-                    )
-                    misc.append(misc_token.literal)
-                module_code.misc = " ".join(misc)
+                module_code.misc = self.miscellaneous()
 
         # module_code can be (None | ModuleCode(CB1131))
         return module_code
@@ -249,13 +267,17 @@ class Parser:
         initial_position = self.position
         found = self.match_multi([TokenType.GRADE, TokenType.TYPE])
         if found:
-            self.consume(TokenType.COLON, "Expected ':' after 'Grade Type'")
-            self.consume(TokenType.PASS, "Expected 'Pass' after 'Grade Type:'")
-            self.consume(TokenType.SLASH, "Expected '/' after 'Grade Type: Pass'")
-            self.consume(
-                TokenType.FAIL, "Expected 'Fail' after 'Grade Type: Pass/Fail'"
-            )
-            return True
+            try:
+                self.consume(TokenType.COLON, "Expected ':' after 'Grade Type'")
+                self.consume(TokenType.PASS, "Expected 'Pass' after 'Grade Type:'")
+                self.consume(TokenType.SLASH, "Expected '/' after 'Grade Type: Pass'")
+                self.consume(
+                    TokenType.FAIL, "Expected 'Fail' after 'Grade Type: Pass/Fail'"
+                )
+                return True
+            except Exception as e:
+                self.set_position(initial_position)
+                raise e
         self.set_position(initial_position)
         return False
 
@@ -263,37 +285,53 @@ class Parser:
         # Parse module name until the numeric AU
         # e.g. Introduction to Computational Thinking
         module_description = []
-        reset_position = self.position
+        reset_position = current_position = self.position
         while not self.match_au():
             token = self.current_token()
             if token is None:
+                self.set_position(reset_position)
                 raise Exception(
                     "Expected token to parse as module description, but no tokens remain."
                 )
-            self.move()
             module_description.append(token)
-            reset_position = self.position
+
+            self.move()
+            current_position = self.position
         # revert position from matching au
-        self.set_position(reset_position)
+        self.set_position(current_position)
         return flatten_tokens(TokenType.IDENTIFIER, module_description)
 
     def au(self) -> Token:
+        reset_position = self.position
         # parse AU in the decimal number format <WHOLE>.<DECIMAL>
         tokens = []
-        if self.match_no_move(TokenType.NUMBER):
+        if self.match(TokenType.NUMBER):
+            # previous token is not none as we just matched it
+            tokens.append(cast(Token, self.previous_token()))
+        try:
             tokens.append(
                 self.consume(
-                    TokenType.NUMBER, "Expected a whole number to indicate AUs"
+                    TokenType.DOT,
+                    "Expected a dot to separate whole & decimal part of AUs",
                 )
             )
-        tokens.append(
-            self.consume(
-                TokenType.DOT, "Expected a dot to separate whole & decimal part of AUs"
+            tokens.append(
+                self.consume(
+                    TokenType.NUMBER, "Expected a decimal number to indicate AUs"
+                )
             )
-        )
-        tokens.append(
-            self.consume(TokenType.NUMBER, "Expected a decimal number to indicate AUs")
-        )
+        except Exception as e:
+            self.set_position(reset_position)
+            raise e
+
+        # match the AU or school name suffix
+        has_suffix = self.match(TokenType.AU) or self.match(TokenType.IDENTIFIER)
+        if self.match_no_move(TokenType.LPAREN):
+            self.miscellaneous()
+        if not has_suffix:
+            self.set_position(reset_position)
+            raise Exception("Expected a AU or school name suffix after AU.")
+
         return flatten_tokens(TokenType.AU, tokens, interval="")
 
     def _mod_and(self) -> list[ModuleCode]:
@@ -308,24 +346,29 @@ class Parser:
         initial_position = self.position
         if not self.match(TokenType.PREREQ):
             return None
-        self.consume(TokenType.COLON, 'Expect colon after "Prerequisite"')
+        try:
+            self.consume(TokenType.COLON, 'Expect colon after "Prerequisite"')
 
-        # Within the year prerequisites, there are two formats
-        # 1) Prerequisite: Year 3 standing
-        # 2) Prerequisite: Study Year 3 standing
-        # Note that I have not been able to find any nesting of years, i.e. Year 2 & Year 3 standing
-        if self.match_identifier("Year") or self.match_identifier("Study"):
-            # This moves past both Year and Study Year
-            previous_token = self.previous_token()
-            if previous_token is not None and previous_token.literal == "Study":
-                self.move()
-            year = self.consume(
-                TokenType.NUMBER, "Expected a number after Year/Study Year"
-            )
-            self.consume(
-                TokenType.STANDING, f"Expected a standing after Year/Study Year {year}"
-            )
-            return year
+            # Within the year prerequisites, there are two formats
+            # 1) Prerequisite: Year 3 standing
+            # 2) Prerequisite: Study Year 3 standing
+            # Note that I have not been able to find any nesting of years, i.e. Year 2 & Year 3 standing
+            if self.match_identifier("Year") or self.match_identifier("Study"):
+                # This moves past both Year and Study Year
+                previous_token = self.previous_token()
+                if previous_token is not None and previous_token.literal == "Study":
+                    self.move()
+                year = self.consume(
+                    TokenType.NUMBER, "Expected a number after Year/Study Year"
+                )
+                self.consume(
+                    TokenType.STANDING,
+                    f"Expected a standing after Year/Study Year {year}",
+                )
+                return year
+        except Exception as e:
+            self.set_position(initial_position)
+            raise e
 
         self.set_position(initial_position)
         return None
@@ -336,7 +379,11 @@ class Parser:
         initial_position = self.position
         if not self.match(TokenType.PREREQ):
             return []
-        self.consume(TokenType.COLON, 'Expect colon after "Prerequisite"')
+        try:
+            self.consume(TokenType.COLON, 'Expect colon after "Prerequisite"')
+        except Exception as e:
+            self.set_position(initial_position)
+            raise e
 
         # This can either be a module prerequisite or a year pre-requisite
         if self.match_no_move(TokenType.MODULE_CODE):
@@ -351,12 +398,19 @@ class Parser:
         return []
 
     def mutually_exclusive(self) -> list[ModuleCode]:
+        initial_position = self.position
         # If it does not start with "Mutually exclusive with"
         if not self.match_consecutive_identifiers(
             [TokenType.MUTUALLY.value, TokenType.EXCLUSIVE.value, TokenType.WITH.value]
         ):
             return []
-        self.consume(TokenType.COLON, 'Expected colon after "Mutually Exclusive with"')
+        try:
+            self.consume(
+                TokenType.COLON, 'Expected colon after "Mutually Exclusive with"'
+            )
+        except Exception as e:
+            self.set_position(initial_position)
+            raise e
 
         exclusive_mods = []
         while self.match_no_move(TokenType.MODULE_CODE):
