@@ -31,6 +31,9 @@ def test_tokens_to_module():
             module_mutually_exclusives=module_mutually_exclusives,
             module_pre_requisite_year=year,
             module_pre_requisite_mods=module_pre_requisite_mods,
+            module_reject_courses=[],
+            module_reject_courses_with=[],
+            module_is_bde=False,
             module_pass_fail=is_pass_fail,
         )
 
@@ -42,6 +45,7 @@ def test_tokens_to_module():
             needs_year=None if year is None else int(year.literal),
             needs_modules=module_pre_requisite_mods,
             rejects_courses=[],
+            rejects_courses_with=[],
             allowed_courses=[],
             rejects_modules=[],
             is_bde=False,
