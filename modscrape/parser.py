@@ -553,8 +553,10 @@ class Parser:
         ):
             return []
         try:
-        # There's always a ':' after 'Not available to Programme'
-            self.consume(TokenType.COLON, "Expected ':' after 'Not available to Programme'")
+            # There's always a ':' after 'Not available to Programme'
+            self.consume(
+                TokenType.COLON, "Expected ':' after 'Not available to Programme'"
+            )
         except Exception as e:
             self.set_position(initial_position)
             raise e
