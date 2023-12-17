@@ -372,13 +372,14 @@ def test_not_available_to_programme():
                 text="Not available to Programme: EEE(2018-onwards)(Non Direct Entry), IEM(2019-onwards)(Direct Entry), MEEC(RMS)(2020-onwards)(Direct Entry)",
                 expected=[
                     Course("EEE", False, 2018, 9999, None),
-                    Course("IEM",True, 2019, 9999, None),
-                    Course("MEEC",True, 2020, 9999,"RMS"),
+                    Course("IEM", True, 2019, 9999, None),
+                    Course("MEEC", True, 2020, 9999, "RMS"),
                 ],
             ),
         ],
         method=Parser.not_available_to_programme,
     )
+
 
 def test_not_available_to_programme_with():
     check_parser(
@@ -387,6 +388,17 @@ def test_not_available_to_programme_with():
             ParseCase("Not available to all Programme with", exception=Exception),
             # There can be no cases where this is available, but no further texts are
             ParseCase("Not available to all Programme with:", []),
+            ParseCase(
+                text="Not available to all Programme with: (Admyr 2021-onwards)",
+                expected=[Course("Admyr", None, 2021, 9999, None)],
+            ),
+            ParseCase(
+                text="Not available to all Programme with: (Admyr 2011-2019), (Admyr 2021-onwards)",
+                expected=[
+                    Course("Admyr", None, 2011, 2019, None),
+                    Course("Admyr", None, 2021, 9999, None),
+                ],
+            ),
         ],
         method=Parser.not_available_to_programme_with,
     )

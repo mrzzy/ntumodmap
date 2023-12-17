@@ -540,10 +540,9 @@ class Parser:
                 break
             admyr_courses.append(course)
             current_token = self.current_token()
+            # End of paragraph
             if current_token is None:
-                raise Exception(
-                    "Expected a token while parsing courses, but no tokens remain."
-                )
+                break
             if current_token.token_type == TokenType.COMMA:
                 self.move()
             else:
