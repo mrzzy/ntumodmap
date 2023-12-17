@@ -79,22 +79,39 @@ class ParseCase:
     - text: The text to feed to the parser.
     - expected: If set, the expected parsing result to receive from the parser.
     - exception: If set, an exception of this type should be raised.
+    - position: If set, how many tokens the parser should shift its inputs.
+        By default this is set to the number of tokens in the text input or 0
+        if exception is set.
     """
 
     text: str
     expected: Optional[Any] = None
     exception: Optional[Type[Exception]] = None
+    position: Optional[int] = None
+
+    def __post_init__(self):
+        # called after __init__()
+        self.tokens = lex([self.text])
+        if self.position is not None:
+            self.n_shifts = self.position
+        elif self.exception is not None:
+            self.n_shifts = 0
+        else:
+            self.n_shifts = len(self.tokens[0])
 
 
 def check_parser(cases: Iterable[ParseCase], method: Callable[[Parser], Any]):
     """Check that calling method on Parser passes the given ParseCases."""
     for case in cases:
-        parser = Parser(lex([case.text]))
+        parser = Parser(case.tokens)
+        # check parser functionality
         if case.exception is not None:
             with pytest.raises(case.exception):
                 method(parser)
-            continue
-        assert method(parser) == case.expected
+        else:
+            assert method(parser) == case.expected
+        # check parser position
+        assert parser.position == case.n_shifts
 
 
 @pytest.fixture
@@ -192,6 +209,23 @@ def test_parser_consume(tokens: list[list[Token]]):
         parser.consume_multi([TokenType.IDENTIFIER], "end of string")
 
 
+def test_parser_mischellaneous():
+    check_parser(
+        cases=[
+            ParseCase("No match", exception=Exception),
+            ParseCase("No match)", exception=Exception),
+            ParseCase("(No match", exception=Exception),
+            ParseCase("()", ""),
+            ParseCase("(match this) not this", "match this", position=4),
+            # check non identifier tokens are considered miscellaneous if
+            # surrounded by parenthesis
+            ParseCase("(Grade this) not this", "Grade this", position=4),
+            ParseCase("(Type this) not this", "Type this", position=4),
+        ],
+        method=Parser.miscellaneous,
+    )
+
+
 def test_parser_module_code():
     check_parser(
         cases=[
@@ -211,7 +245,7 @@ def test_parser_pass_fail():
     check_parser(
         cases=[
             # input, return value, exception
-            ParseCase("No match", False),
+            ParseCase("No match", False, position=0),
             ParseCase("Grade Type: Pass/Fail", True),
             ParseCase("Grade Type: Malformed", exception=Exception),
         ],
@@ -219,7 +253,7 @@ def test_parser_pass_fail():
     )
 
 
-def test_module_title():
+def test_parser_module_title():
     check_parser(
         cases=[
             ParseCase("No match", exception=Exception),
@@ -229,6 +263,7 @@ def test_module_title():
                     TokenType.IDENTIFIER,
                     "INTRODUCTION TO COMPUTATIONAL THINKING & PROGRAMMING",
                 ),
+                position=6,
             ),
             ParseCase(
                 "INTRODUCTION TO ACADEMIC COMMUNICATION 	.0 AU",
@@ -236,37 +271,39 @@ def test_module_title():
                     TokenType.IDENTIFIER,
                     "INTRODUCTION TO ACADEMIC COMMUNICATION",
                 ),
+                position=4,
             ),
             ParseCase(
                 "MATHEMATICS 1 	3.0 AU",
                 Token(TokenType.IDENTIFIER, "MATHEMATICS 1"),
+                position=2,
             ),
         ],
         method=Parser.module_title,
     )
 
 
-def test_au():
+def test_parser_au():
     check_parser(
         cases=[
             ParseCase("No number", exception=Exception),
             ParseCase("5 missing token", exception=Exception),
-            ParseCase("3.0 AU", Token(TokenType.AU, "3.0"), None),
-            ParseCase(".0 AU", Token(TokenType.AU, ".0"), None),
-            ParseCase("3.5 ADM", Token(TokenType.AU, "3.5"), None),
-            ParseCase("8.0 BIE(CBE)", Token(TokenType.AU, "8.0"), None),
+            ParseCase("3.0 AU", Token(TokenType.AU, "3.0")),
+            ParseCase(".0 AU", Token(TokenType.AU, ".0")),
+            ParseCase("3.5 ADM", Token(TokenType.AU, "3.5")),
+            ParseCase("8.0 BIE(CBE)", Token(TokenType.AU, "8.0")),
         ],
         method=Parser.au,
     )
 
 
-def test_pre_requisite_year():
+def test_parser_pre_requisite_year():
     check_parser(
         cases=[
             ParseCase("", None),
             # no comma after prerequisite
             ParseCase("Prerequisite", exception=Exception),
-            ParseCase("Prerequisite:", None),
+            ParseCase("Prerequisite:", None, position=0),
             ParseCase("Prerequisite: Year 3 standing", Token(TokenType.NUMBER, "3")),
             ParseCase(
                 "Prerequisite: Study Year 4 standing", Token(TokenType.NUMBER, "4")
@@ -276,13 +313,13 @@ def test_pre_requisite_year():
     )
 
 
-def test_pre_requisite_mods():
+def test_parser_pre_requisite_mods():
     check_parser(
         cases=[
             ParseCase("", []),
             # no comma after prerequisite
             ParseCase("Prerequisite", exception=Exception),
-            ParseCase("Prerequisite:", []),
+            ParseCase("Prerequisite:", [], position=0),
             ParseCase(
                 text="Prerequisite: CZ1007 & CZ2001(Corequisite)"
                 " OR CE1007 & CE2001(Corequisite)"
@@ -300,7 +337,7 @@ def test_pre_requisite_mods():
     )
 
 
-def test_pre_requisite_exclusives():
+def test_parser_pre_requisite_exclusives():
     check_parser(
         cases=[
             ParseCase("", None),
@@ -318,7 +355,7 @@ def test_pre_requisite_exclusives():
     )
 
 
-def test_mutually_exclusive():
+def test_parser_mutally_exclusive():
     check_parser(
         cases=[
             ParseCase("", []),
@@ -334,7 +371,7 @@ def test_mutually_exclusive():
     )
 
 
-def test_not_available_to_programme():
+def test_parser_not_available_to_programme():
     check_parser(
         cases=[
             ParseCase("", []),
@@ -380,7 +417,7 @@ def test_not_available_to_programme():
     )
 
 
-def test_not_available_to_programme_with():
+def test_parser_not_available_to_programme_with():
     check_parser(
         cases=[
             ParseCase("", []),
@@ -402,7 +439,7 @@ def test_not_available_to_programme_with():
     )
 
 
-def test_not_offered_as_bde():
+def test_parser_not_offered_as_bde():
     check_parser(
         cases=[
             ParseCase("", False),
@@ -412,7 +449,7 @@ def test_not_offered_as_bde():
     )
 
 
-def test_not_offered_as_ue():
+def test_parser_not_offered_as_ue():
     check_parser(
         cases=[
             ParseCase("", False),
