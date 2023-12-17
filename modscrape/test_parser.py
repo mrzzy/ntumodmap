@@ -66,7 +66,7 @@ def test_tokens_to_module():
             not_offered_as_bde=not_offered_as_bde,
             not_offered_as_ue=not_offered_as_ue,
             is_pass_fail=is_pass_fail,
-            description=module_description.literal
+            description=module_description.literal,
         )
 
         assert actual == expected
@@ -297,6 +297,24 @@ def test_pre_requisite_mods():
             ),
         ],
         method=Parser.pre_requisite_mods,
+    )
+
+
+def test_pre_requisite_exclusives():
+    check_parser(
+        cases=[
+            ParseCase("", None),
+            ParseCase("Prerequisite", exception=Exception),
+            ParseCase("Prerequisite:", Token(TokenType.IDENTIFIER, "")),
+            ParseCase(
+                text="Prerequisite: Only for Premier Scholars Programme students",
+                expected=Token(
+                    TokenType.IDENTIFIER,
+                    "Only for Premier Scholars Programme students",
+                ),
+            ),
+        ],
+        method=Parser.pre_requisite_exclusives,
     )
 
 
