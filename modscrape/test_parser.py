@@ -11,7 +11,7 @@ from typing import Any, Callable, Iterable, Optional, Type, cast
 import pytest
 
 from lexer import lex
-from module import Module, ModuleCode, Course
+from module import Course, Module, ModuleCode
 from tok import Token, TokenType
 
 
