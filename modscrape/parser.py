@@ -355,7 +355,7 @@ class Parser:
         self.set_position(initial_position)
         return False
 
-    def module_description(self) -> Token:
+    def module_title(self) -> Token:
         # Parse module name until the numeric AU
         # e.g. Introduction to Computational Thinking
         module_description = []
@@ -597,7 +597,7 @@ class Parser:
 
     def module(self) -> Optional[Module]:
         module_code = self.module_code()
-        module_description = self.module_description()
+        module_title = self.module_title()
         module_au = self.au()
         pass_fail = self.pass_fail()
 
@@ -612,12 +612,14 @@ class Parser:
         not_available_to_programme = self.not_available_to_programme()
         not_available_to_programme_with = self.not_available_to_programme_with()
         not_available_as_pe_to_programme = self.not_available_as_pe_to_programme()
+
+        # Unavailable as broadening and deeping electives | unrestricted electives
         not_offered_as_bde = self.not_offered_as_bde()
         not_offered_as_ue = self.not_offered_as_ue()
 
         module = tokens_to_module(
             module_code=module_code,
-            module_title=module_description,
+            module_title=module_title,
             module_au=module_au,
             module_mutually_exclusives=mutually_exclusives,
             module_pre_requisite_year=pre_requisites_year,
