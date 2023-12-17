@@ -64,7 +64,6 @@ def tokens_to_module(
     rejects_courses: list[Course] = module_reject_courses
     rejects_courses_with: list[Course] = module_reject_courses_with
     allowed_courses: list[Course] = []
-    is_bde = False
     description = module_description.literal
 
     return Module(
@@ -81,7 +80,7 @@ def tokens_to_module(
         module_pre_requisite_mods,
         (
             module_pre_requisite_exclusives.literal
-            if module_pre_requisite_exclusives is not None 
+            if module_pre_requisite_exclusives is not None
             else ""
         ),
         rejects_modules,
@@ -412,9 +411,8 @@ class Parser:
     # One of the cases are
     # 1. Prerequisite: Only for Premier Scholars Programme students
     # Since this is the only one that can be found, I will parse it as one sentence.
-    # With the priod at the end
+    # With the period at the end
     def pre_requisite_exclusives(self) -> Optional[Token]:
-        initial_position = self.position
         if not self.match(TokenType.PREREQ):
             return None
         self.consume(TokenType.COLON, 'Expect colon after "Prerequisite"')
@@ -540,7 +538,7 @@ class Parser:
             # If the source text has an additional ',' at the end, it will try to parse
             # what comes after that, but nothing will be parsed, but an course object
             # will be returned, if it's a dud, we just check the important from_year
-            if course.from_year == None:
+            if course.from_year is None:
                 break
             admyr_courses.append(course)
             current_token = self.current_token()
