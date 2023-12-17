@@ -51,7 +51,9 @@ def tokens_to_module(
     module_pre_requisite_mods: list[list[ModuleCode]],
     module_reject_courses: list[Course],
     module_reject_courses_with: list[Course],
-    module_is_bde: bool,
+    module_unavailable_as_pe: list[Course],
+    module_not_offered_as_bde: bool,
+    module_not_offered_as_ue: bool,
     module_pass_fail: bool,
 ) -> Module:
     title = module_title.literal
@@ -79,8 +81,10 @@ def tokens_to_module(
         rejects_modules,
         rejects_courses,
         rejects_courses_with,
+        module_unavailable_as_pe,
         allowed_courses,
-        is_bde,
+        module_not_offered_as_bde,
+        module_not_offered_as_ue,
         module_pass_fail,
     )
 
@@ -103,7 +107,9 @@ class Parser:
         is_out_bounds = self.paragraph >= len(self.tokens) or self.position >= len(
             self.tokens[self.paragraph]
         )
-        return None if is_out_bounds else self.tokens[self.paragraph][self.position]
+        return (
+            None if is_out_bounds else self.tokens[self.paragraph][self.position]
+        )
 
     def previous_token(self) -> Optional[Token]:
         """
@@ -524,32 +530,70 @@ class Parser:
                 break
         return admyr_courses
 
-    def not_offered_as_bde_or_ue(self) -> Optional[Token]:
-        if self.match_multi(
+    def not_available_as_pe_to_programme(self) -> list[Course]:
+        if not self.match_consecutive_identifiers(
             [
-                TokenType.NOT,
-                TokenType.OFFERED,
-                TokenType.AS,
-                TokenType.BROADENING,
-                TokenType.IDENTIFIER,
-                TokenType.DEEPENING,
-                TokenType.ELECTIVE,
+                TokenType.NOT.value,
+                TokenType.AVAIL.value,
+                TokenType.AS.value,
+                TokenType.PE.value,
+                TokenType.TO.value,
+                TokenType.PROGRAMME.value,
             ]
         ):
-            return Token(
-                TokenType.NOT_OFFERED_AS_BDE, TokenType.NOT_OFFERED_AS_BDE.value
-            )
-        if self.match_multi(
+            return []
+        # There's always a ':' after 'Not available to Programme with'
+        self.consume(
+            TokenType.COLON, "Expected ':' after 'Not available as PE to Programme'"
+        )
+
+        courses: list[Course] = []
+        while course := self.course():
+            courses.append(course)
+            current_token = self.current_token()
+            if current_token is None:
+                raise Exception(
+                    "Expected a token while parsing courses, but no tokens remain."
+                )
+            if current_token.token_type == TokenType.COMMA:
+                self.move()
+            else:
+                break
+        return courses
+        
+
+    def not_offered_as_bde(self) -> bool:
+        initial_position = self.position
+        if self.match_consecutive_identifiers(
             [
-                TokenType.NOT,
-                TokenType.OFFERED,
-                TokenType.AS,
-                TokenType.UNRESTRICTED,
-                TokenType.ELECTIVE,
+                TokenType.NOT.value,
+                TokenType.OFFERED.value,
+                TokenType.AS.value,
+                TokenType.BROADENING.value,
+                TokenType.AND_TEXT.value,
+                TokenType.DEEPENING.value,
+                TokenType.ELECTIVE.value,
             ]
         ):
-            return Token(TokenType.NOT_OFFERED_AS_UE, TokenType.NOT_OFFERED_AS_UE.value)
-        return None
+            return True
+        self.position = initial_position
+        return False
+
+    def not_offered_as_ue(self) -> bool:
+        initial_position = self.position
+        if self.match_consecutive_identifiers(
+            [
+                TokenType.NOT.value,
+                TokenType.OFFERED.value,
+                TokenType.AS.value,
+                TokenType.UNRESTRICTED.value,
+                TokenType.ELECTIVE.value,
+            ]
+        ):
+            return True
+            # return Token(TokenType.NOT_OFFERED_AS_UE, TokenType.NOT_OFFERED_AS_UE.value)
+        self.position = initial_position
+        return False
 
     def module(self) -> Optional[Module]:
         module_code = self.module_code()
@@ -567,6 +611,9 @@ class Parser:
         # Try to match for not available to programme
         not_available_to_programme = self.not_available_to_programme()
         not_available_to_programme_with = self.not_available_to_programme_with()
+        not_available_as_pe_to_programme = self.not_available_as_pe_to_programme()
+        not_offered_as_bde = self.not_offered_as_bde()
+        not_offered_as_ue = self.not_offered_as_ue()
 
         module = tokens_to_module(
             module_code=module_code,
@@ -577,7 +624,9 @@ class Parser:
             module_pre_requisite_mods=pre_requisites_mods,
             module_reject_courses=not_available_to_programme,
             module_reject_courses_with=not_available_to_programme_with,
-            module_is_bde=False,
+            module_unavailable_as_pe=not_available_as_pe_to_programme,
+            module_not_offered_as_bde=not_offered_as_bde,
+            module_not_offered_as_ue=not_offered_as_ue,
             module_pass_fail=pass_fail,  # module pass fail
         )
 

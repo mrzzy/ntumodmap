@@ -23,6 +23,7 @@ class TokenType(Enum):
     # Some prereqs are listed as X OR Y OR Z
     OR = "OR"
     AND = "&"
+    AND_TEXT = "and"
 
     MUTUALLY = "Mutually"
     EXCLUSIVE = "exclusive"
