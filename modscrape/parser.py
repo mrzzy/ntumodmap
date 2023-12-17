@@ -501,12 +501,12 @@ class Parser:
         self.consume(TokenType.COLON, "Expected ':' after 'Not available to Programme'")
 
         courses: list[Course] = []
-        while course := self.course():
-            courses.append(course)
+        while self.current_token() is not None:
+            courses.append(self.course())
             current_token = self.current_token()
             # End of paragraph
             if current_token is None:
-                break 
+                break
             if current_token.token_type == TokenType.COMMA:
                 self.move()
             else:

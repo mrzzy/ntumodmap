@@ -340,7 +340,7 @@ def test_not_available_to_programme():
             ParseCase("", []),
             ParseCase("Not available to Programme", exception=Exception),
             # There can be no cases where this is available, but no further texts are
-            ParseCase("Not available to Programme:", exception=Exception),
+            ParseCase("Not available to Programme:", []),
             ParseCase(
                 text="Not available to Programme: CE",
                 expected=[Course("CE", None, None, None, None)],
@@ -378,4 +378,15 @@ def test_not_available_to_programme():
             ),
         ],
         method=Parser.not_available_to_programme,
+    )
+
+def test_not_available_to_programme_with():
+    check_parser(
+        cases=[
+            ParseCase("", []),
+            ParseCase("Not available to all Programme with", exception=Exception),
+            # There can be no cases where this is available, but no further texts are
+            ParseCase("Not available to all Programme with:", []),
+        ],
+        method=Parser.not_available_to_programme_with,
     )
