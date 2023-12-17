@@ -11,7 +11,7 @@ from typing import Any, Callable, Iterable, Optional, Type, cast
 import pytest
 
 from lexer import lex
-from module import Module, ModuleCode
+from module import Module, ModuleCode, Course
 from tok import Token, TokenType
 
 
@@ -331,4 +331,51 @@ def test_mutually_exclusive():
             ),
         ],
         method=Parser.mutually_exclusive,
+    )
+
+
+def test_not_available_to_programme():
+    check_parser(
+        cases=[
+            ParseCase("", []),
+            ParseCase("Not available to Programme", exception=Exception),
+            # There can be no cases where this is available, but no further texts are
+            ParseCase("Not available to Programme:", exception=Exception),
+            ParseCase(
+                text="Not available to Programme: CE",
+                expected=[Course("CE", None, None, None, None)],
+            ),
+            ParseCase(
+                text="Not available to Programme: REP(CSC)",
+                expected=[Course("REP", None, None, None, "CSC")],
+            ),
+            ParseCase(
+                text="Not available to Programme: REP(CSC), REP(CE)",
+                expected=[
+                    Course("REP", None, None, None, "CSC"),
+                    Course("REP", None, None, None, "CE"),
+                ],
+            ),
+            ParseCase(
+                text="Not available to Programme: EEE(Direct Entry)",
+                expected=[
+                    Course("EEE", True, None, None, None),
+                ],
+            ),
+            ParseCase(
+                text="Not available to Programme: EEE(2018-onwards)(Non Direct Entry)",
+                expected=[
+                    Course("EEE", False, 2018, 9999, None),
+                ],
+            ),
+            ParseCase(
+                text="Not available to Programme: EEE(2018-onwards)(Non Direct Entry), IEM(2019-onwards)(Direct Entry), MEEC(RMS)(2020-onwards)(Direct Entry)",
+                expected=[
+                    Course("EEE", False, 2018, 9999, None),
+                    Course("IEM",True, 2019, 9999, None),
+                    Course("MEEC",True, 2020, 9999,"RMS"),
+                ],
+            ),
+        ],
+        method=Parser.not_available_to_programme,
     )
