@@ -47,6 +47,8 @@ class Module:
     rejects_modules: list[ModuleCode]
     rejects_courses: list[Course]
     rejects_courses_with: list[Course]
+    unavailable_as_pe: list[Course]
     allowed_courses: list[Course]
-    is_bde: bool
+    not_offered_as_bde: bool
+    not_offered_as_ue: bool
     is_pass_fail: bool
