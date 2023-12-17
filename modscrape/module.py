@@ -35,7 +35,6 @@ class Course:
     alt_course: Optional[str]
 
 
-# TODO(lczm): how do we represent modules as part of an IR?
 @dataclass
 class Module:
     code: ModuleCode
