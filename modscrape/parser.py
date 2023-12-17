@@ -55,16 +55,16 @@ def tokens_to_module(
     module_not_offered_as_bde: bool,
     module_not_offered_as_ue: bool,
     module_pass_fail: bool,
+    module_description: Token,
 ) -> Module:
     title = module_title.literal
     au = float(module_au.literal)
-
-    # TODO: To be filled in
     rejects_modules: list[ModuleCode] = []
     rejects_courses: list[Course] = module_reject_courses
     rejects_courses_with: list[Course] = module_reject_courses_with
     allowed_courses: list[Course] = []
     is_bde = False
+    description = module_description.literal
 
     return Module(
         module_code,
@@ -86,6 +86,7 @@ def tokens_to_module(
         module_not_offered_as_bde,
         module_not_offered_as_ue,
         module_pass_fail,
+        description,
     )
 
 
@@ -107,9 +108,7 @@ class Parser:
         is_out_bounds = self.paragraph >= len(self.tokens) or self.position >= len(
             self.tokens[self.paragraph]
         )
-        return (
-            None if is_out_bounds else self.tokens[self.paragraph][self.position]
-        )
+        return None if is_out_bounds else self.tokens[self.paragraph][self.position]
 
     def previous_token(self) -> Optional[Token]:
         """
@@ -560,7 +559,6 @@ class Parser:
             else:
                 break
         return courses
-        
 
     def not_offered_as_bde(self) -> bool:
         initial_position = self.position
@@ -595,6 +593,16 @@ class Parser:
         self.position = initial_position
         return False
 
+    def module_description(self) -> Token:
+        descriptions: list[Token] = []
+        while not self.match_no_move(TokenType.MODULE_CODE):
+            current_token = self.current_token()
+            if current_token is None:
+                break
+            descriptions.append(current_token)
+            self.move()
+        return flatten_tokens(TokenType.IDENTIFIER, descriptions)
+
     def module(self) -> Optional[Module]:
         module_code = self.module_code()
         module_title = self.module_title()
@@ -617,6 +625,9 @@ class Parser:
         not_offered_as_bde = self.not_offered_as_bde()
         not_offered_as_ue = self.not_offered_as_ue()
 
+        # Get the rest of the module description
+        module_description = self.module_description()
+
         module = tokens_to_module(
             module_code=module_code,
             module_title=module_title,
@@ -630,6 +641,7 @@ class Parser:
             module_not_offered_as_bde=not_offered_as_bde,
             module_not_offered_as_ue=not_offered_as_ue,
             module_pass_fail=pass_fail,  # module pass fail
+            module_description=module_description
         )
 
         return module

@@ -52,3 +52,4 @@ class Module:
     not_offered_as_bde: bool
     not_offered_as_ue: bool
     is_pass_fail: bool
+    description: str
