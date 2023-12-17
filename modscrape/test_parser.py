@@ -339,7 +339,6 @@ def test_not_available_to_programme():
         cases=[
             ParseCase("", []),
             ParseCase("Not available to Programme", exception=Exception),
-            # There can be no cases where this is available, but no further texts are
             ParseCase("Not available to Programme:", []),
             ParseCase(
                 text="Not available to Programme: CE",
@@ -386,7 +385,6 @@ def test_not_available_to_programme_with():
         cases=[
             ParseCase("", []),
             ParseCase("Not available to all Programme with", exception=Exception),
-            # There can be no cases where this is available, but no further texts are
             ParseCase("Not available to all Programme with:", []),
             ParseCase(
                 text="Not available to all Programme with: (Admyr 2021-onwards)",
@@ -401,4 +399,24 @@ def test_not_available_to_programme_with():
             ),
         ],
         method=Parser.not_available_to_programme_with,
+    )
+
+
+def test_not_offered_as_bde():
+    check_parser(
+        cases=[
+            ParseCase("", False),
+            ParseCase("Not offered as Broadening and Deepening Elective", True),
+        ],
+        method=Parser.not_offered_as_bde,
+    )
+
+
+def test_not_offered_as_ue():
+    check_parser(
+        cases=[
+            ParseCase("", False),
+            ParseCase("Not offered as Unrestricted Elective", True),
+        ],
+        method=Parser.not_offered_as_ue,
     )
