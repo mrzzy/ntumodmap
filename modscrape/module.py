@@ -43,6 +43,7 @@ class Module:
     mutually_exclusives: list[ModuleCode]
     needs_year: Optional[int]
     needs_modules: list[list[ModuleCode]]
+    needs_exclusives: str
     rejects_modules: list[ModuleCode]
     rejects_courses: list[Course]
     rejects_courses_with: list[Course]

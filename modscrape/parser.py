@@ -49,6 +49,7 @@ def tokens_to_module(
     module_mutually_exclusives: list[ModuleCode],
     module_pre_requisite_year: Optional[Token],
     module_pre_requisite_mods: list[list[ModuleCode]],
+    module_pre_requisite_exclusives: Optional[Token],
     module_reject_courses: list[Course],
     module_reject_courses_with: list[Course],
     module_unavailable_as_pe: list[Course],
@@ -78,6 +79,11 @@ def tokens_to_module(
             else None
         ),
         module_pre_requisite_mods,
+        (
+            module_pre_requisite_exclusives.literal
+            if module_pre_requisite_exclusives is not None 
+            else ""
+        ),
         rejects_modules,
         rejects_courses,
         rejects_courses_with,
@@ -402,6 +408,25 @@ class Parser:
             current_set.append(self.module_code())
         return current_set
 
+    # Matches for the edge cases of prerequisite:
+    # One of the cases are
+    # 1. Prerequisite: Only for Premier Scholars Programme students
+    # Since this is the only one that can be found, I will parse it as one sentence.
+    # With the priod at the end
+    def pre_requisite_exclusives(self) -> Optional[Token]:
+        initial_position = self.position
+        if not self.match(TokenType.PREREQ):
+            return None
+        self.consume(TokenType.COLON, 'Expect colon after "Prerequisite"')
+
+        exclusives: list[Token] = []
+        while self.match_no_move(TokenType.IDENTIFIER):
+            # Guaranteed to not be a None, since matched above
+            exclusives.append(cast(Token, self.current_token()))
+            self.move()
+
+        return flatten_tokens(TokenType.IDENTIFIER, exclusives)
+
     # This returns a Token.NUMBER of year of the pre-requisite
     def pre_requisite_year(self) -> Optional[Token]:
         initial_position = self.position
@@ -612,6 +637,7 @@ class Parser:
         # Try to match for prerequisites, note that there are two choices here
         pre_requisites_year = self.pre_requisite_year()
         pre_requisites_mods = self.pre_requisite_mods()
+        pre_requisite_exclusives = self.pre_requisite_exclusives()
 
         # Try to match for mutually exclusives
         mutually_exclusives = self.mutually_exclusive()
@@ -635,13 +661,14 @@ class Parser:
             module_mutually_exclusives=mutually_exclusives,
             module_pre_requisite_year=pre_requisites_year,
             module_pre_requisite_mods=pre_requisites_mods,
+            module_pre_requisite_exclusives=pre_requisite_exclusives,
             module_reject_courses=not_available_to_programme,
             module_reject_courses_with=not_available_to_programme_with,
             module_unavailable_as_pe=not_available_as_pe_to_programme,
             module_not_offered_as_bde=not_offered_as_bde,
             module_not_offered_as_ue=not_offered_as_ue,
             module_pass_fail=pass_fail,  # module pass fail
-            module_description=module_description
+            module_description=module_description,
         )
 
         return module
