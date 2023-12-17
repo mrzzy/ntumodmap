@@ -21,7 +21,16 @@ def test_tokens_to_module():
         code, title = ModuleCode("SC1005"), "Digital Logic"
         module_mutually_exclusives = [ModuleCode("CZ1005")]
         module_pre_requisite_mods = [[ModuleCode(f"SC100{i}") for i in [1, 2]]]
+        module_pre_requisite_exclusives = Token(
+            TokenType.IDENTIFIER, "for students who failed QET"
+        )
+        not_offered_as_bde = True
+        not_offered_as_ue = False
         is_pass_fail = False
+        module_description = Token(
+            TokenType.IDENTIFIER,
+            "This course aims to develop your ability to analyse and design digital circuits.",
+        )
 
         actual = tokens_to_module(
             module_code=code,
@@ -31,10 +40,14 @@ def test_tokens_to_module():
             module_mutually_exclusives=module_mutually_exclusives,
             module_pre_requisite_year=year,
             module_pre_requisite_mods=module_pre_requisite_mods,
+            module_pre_requisite_exclusives=module_pre_requisite_exclusives,
             module_reject_courses=[],
             module_reject_courses_with=[],
-            module_is_bde=False,
+            module_unavailable_as_pe=[],
+            module_not_offered_as_bde=not_offered_as_bde,
+            module_not_offered_as_ue=not_offered_as_ue,
             module_pass_fail=is_pass_fail,
+            module_description=module_description,
         )
 
         expected = Module(
@@ -44,12 +57,16 @@ def test_tokens_to_module():
             mutually_exclusives=module_mutually_exclusives,
             needs_year=None if year is None else int(year.literal),
             needs_modules=module_pre_requisite_mods,
+            needs_exclusives=module_pre_requisite_exclusives.literal,
             rejects_courses=[],
             rejects_courses_with=[],
+            unavailable_as_pe=[],
             allowed_courses=[],
             rejects_modules=[],
-            is_bde=False,
+            not_offered_as_bde=not_offered_as_bde,
+            not_offered_as_ue=not_offered_as_ue,
             is_pass_fail=is_pass_fail,
+            description=module_description.literal
         )
 
         assert actual == expected
@@ -202,7 +219,7 @@ def test_parser_pass_fail():
     )
 
 
-def test_module_description():
+def test_module_title():
     check_parser(
         cases=[
             ParseCase("No match", exception=Exception),
@@ -225,7 +242,7 @@ def test_module_description():
                 Token(TokenType.IDENTIFIER, "MATHEMATICS 1"),
             ),
         ],
-        method=Parser.module_description,
+        method=Parser.module_title,
     )
 
 

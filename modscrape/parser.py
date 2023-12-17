@@ -56,7 +56,7 @@ def tokens_to_module(
     module_not_offered_as_bde: bool,
     module_not_offered_as_ue: bool,
     module_pass_fail: bool,
-    module_description: Token,
+    module_description: Optional[Token],
 ) -> Module:
     title = module_title.literal
     au = float(module_au.literal)
@@ -64,7 +64,6 @@ def tokens_to_module(
     rejects_courses: list[Course] = module_reject_courses
     rejects_courses_with: list[Course] = module_reject_courses_with
     allowed_courses: list[Course] = []
-    description = module_description.literal
 
     return Module(
         module_code,
@@ -91,7 +90,7 @@ def tokens_to_module(
         module_not_offered_as_bde,
         module_not_offered_as_ue,
         module_pass_fail,
-        description,
+        (module_description.literal if module_description is not None else ""),
     )
 
 
