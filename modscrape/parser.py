@@ -10,7 +10,7 @@ from itertools import repeat
 from typing import Callable, Iterable, Optional, TypeVar, cast
 
 from module import Course, Module, ModuleCode
-from tok import Token, TokenType, flatten_tokens, KeyWords
+from tok import KeyWords, Token, TokenType, flatten_tokens
 
 # I note that this may be bad practice but I dont see any other way to
 # unwrap an optional
