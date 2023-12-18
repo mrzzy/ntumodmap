@@ -6,6 +6,9 @@
 from dataclasses import dataclass
 from enum import Enum
 
+# These are textual keywords - we don't want to manually type in the keywords for identifiers
+# we just match them to these:
+# e.g. Mutually Exclusive => match_consecutive_identifiers([KeyWords.MUTUALLY, KeyWords.EXCLUSIVE])
 class KeyWords():
     AVAIL = "available"
     TO = "to"
