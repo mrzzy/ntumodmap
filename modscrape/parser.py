@@ -256,6 +256,10 @@ class Parser:
             )
             misc = []
             while not self.match(TokenType.RPAREN):
+                if self.current_token() is None:
+                    raise ParseException(
+                        "Expected miscellaneous to end with right parenthesis"
+                    )
                 # match any token within parenthesis as miscellaneous
                 misc.append(cast(Token, self.current_token()).literal)
                 self.position += 1
