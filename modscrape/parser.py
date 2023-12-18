@@ -10,7 +10,7 @@ from itertools import repeat
 from typing import Callable, Iterable, Optional, TypeVar, cast
 
 from module import Course, Module, ModuleCode
-from tok import Token, TokenType, flatten_tokens
+from tok import Token, TokenType, flatten_tokens, KeyWords
 
 # I note that this may be bad practice but I dont see any other way to
 # unwrap an optional
@@ -521,7 +521,7 @@ class Parser:
         initial_position = self.position
         # If it does not start with "Mutually exclusive with"
         if not self.match_consecutive_identifiers(
-            [TokenType.MUTUALLY.value, TokenType.EXCLUSIVE.value, TokenType.WITH.value]
+            [KeyWords.MUTUALLY, KeyWords.EXCLUSIVE, KeyWords.WITH]
         ):
             return []
         try:
@@ -544,10 +544,10 @@ class Parser:
         initial_position = self.position
         if not self.match_consecutive_identifiers(
             [
-                TokenType.NOT.value,
-                TokenType.AVAIL.value,
-                TokenType.TO.value,
-                TokenType.PROGRAMME.value,
+                KeyWords.NOT,
+                KeyWords.AVAIL,
+                KeyWords.TO,
+                KeyWords.PROGRAMME,
             ]
         ):
             return []
@@ -577,12 +577,12 @@ class Parser:
         initial_position = self.position
         if not self.match_consecutive_identifiers(
             [
-                TokenType.NOT.value,
-                TokenType.AVAIL.value,
-                TokenType.TO.value,
-                TokenType.ALL.value,
-                TokenType.PROGRAMME.value,
-                TokenType.WITH.value,
+                KeyWords.NOT,
+                KeyWords.AVAIL,
+                KeyWords.TO,
+                KeyWords.ALL,
+                KeyWords.PROGRAMME,
+                KeyWords.WITH,
             ]
         ):
             return []
@@ -617,12 +617,12 @@ class Parser:
     def not_available_as_pe_to_programme(self) -> list[Course]:
         if not self.match_consecutive_identifiers(
             [
-                TokenType.NOT.value,
-                TokenType.AVAIL.value,
-                TokenType.AS.value,
-                TokenType.PE.value,
-                TokenType.TO.value,
-                TokenType.PROGRAMME.value,
+                KeyWords.NOT,
+                KeyWords.AVAIL,
+                KeyWords.AS,
+                KeyWords.PE,
+                KeyWords.TO,
+                KeyWords.PROGRAMME,
             ]
         ):
             return []
@@ -649,13 +649,13 @@ class Parser:
         initial_position = self.position
         if self.match_consecutive_identifiers(
             [
-                TokenType.NOT.value,
-                TokenType.OFFERED.value,
-                TokenType.AS.value,
-                TokenType.BROADENING.value,
-                TokenType.AND_TEXT.value,
-                TokenType.DEEPENING.value,
-                TokenType.ELECTIVE.value,
+                KeyWords.NOT,
+                KeyWords.OFFERED,
+                KeyWords.AS,
+                KeyWords.BROADENING,
+                KeyWords.AND,
+                KeyWords.DEEPENING,
+                KeyWords.ELECTIVE,
             ]
         ):
             return True
@@ -666,11 +666,11 @@ class Parser:
         initial_position = self.position
         if self.match_consecutive_identifiers(
             [
-                TokenType.NOT.value,
-                TokenType.OFFERED.value,
-                TokenType.AS.value,
-                TokenType.UNRESTRICTED.value,
-                TokenType.ELECTIVE.value,
+                KeyWords.NOT,
+                KeyWords.OFFERED,
+                KeyWords.AS,
+                KeyWords.UNRESTRICTED,
+                KeyWords.ELECTIVE,
             ]
         ):
             return True
