@@ -325,8 +325,7 @@ class Parser:
             alt_course=alt_course_code,
         )
 
-        # Although this and self.course() both returns Course
-
+    # Although this and self.course() both returns Course
     # They are used in separate contexts and separating their parsing
     # capabilities here will be easier
     # This parses for e.g. (Admyr 2011-2020)
