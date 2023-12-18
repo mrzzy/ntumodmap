@@ -16,12 +16,6 @@ keywords: dict[str, TokenType] = {
     "Prerequisite": TokenType.PREREQ,
     "Corequisite": TokenType.COREQ,
     "OR": TokenType.OR,
-    "Mutually exclusive with": TokenType.MUTUALLY_EXCLUSIVE,
-    "Not available to Programme": TokenType.NOT_AVAIL_TO_PROG,
-    "Not available to all Programme with": TokenType.NOT_AVAIL_TO_PROG_WITH,
-    "Not available as PE to Programme": TokenType.NOT_AVAIL_AS_PE_TO_PROG,
-    "Not offered as Unrestricted Elective": TokenType.NOT_OFFERED_AS_UE,
-    "Not offered as Broadening and Deepening Elective": TokenType.NOT_OFFERED_AS_BDE,
     "standing": TokenType.STANDING,
 }
 
