@@ -7,7 +7,7 @@ from typing import Iterable
 
 from tok import Token, TokenType
 
-keywords: dict[str, TokenType] = {
+token_types: dict[str, TokenType] = {
     "AU": TokenType.AU,
     "Grade": TokenType.GRADE,
     "Type": TokenType.TYPE,
@@ -71,9 +71,9 @@ def lex(lines: Iterable[str]) -> list[list[Token]]:
                 while extend < len(line) and line[extend].isalnum():
                     extend += 1
                 identifier = line[current - 1 : extend]
-                # check if its a keyword, otherwise its an identifier
-                if identifier in keywords:
-                    sub_tokens.append(Token(keywords[identifier], identifier))
+                # check if its a token type, otherwise its an identifier
+                if identifier in token_types:
+                    sub_tokens.append(Token(token_types[identifier], identifier))
                 elif identifier.isdigit():
                     sub_tokens.append(Token(TokenType.NUMBER, identifier))
                 else:
