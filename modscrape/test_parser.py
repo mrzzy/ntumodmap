@@ -11,8 +11,8 @@ from typing import Any, Callable, Iterable, Optional, Type, cast
 import pytest
 
 from lexer import lex
-from module import Module, ModuleCode
-from tok import Token, TokenType
+from module import Course, Module, ModuleCode
+from tok import KeyWords, Token, TokenType
 
 
 # Utility function tests
@@ -21,7 +21,16 @@ def test_tokens_to_module():
         code, title = ModuleCode("SC1005"), "Digital Logic"
         module_mutually_exclusives = [ModuleCode("CZ1005")]
         module_pre_requisite_mods = [[ModuleCode(f"SC100{i}") for i in [1, 2]]]
+        module_pre_requisite_exclusives = Token(
+            TokenType.IDENTIFIER, "for students who failed QET"
+        )
+        not_offered_as_bde = True
+        not_offered_as_ue = False
         is_pass_fail = False
+        module_description = Token(
+            TokenType.IDENTIFIER,
+            "This course aims to develop your ability to analyse and design digital circuits.",
+        )
 
         actual = tokens_to_module(
             module_code=code,
@@ -31,7 +40,14 @@ def test_tokens_to_module():
             module_mutually_exclusives=module_mutually_exclusives,
             module_pre_requisite_year=year,
             module_pre_requisite_mods=module_pre_requisite_mods,
+            module_pre_requisite_exclusives=module_pre_requisite_exclusives,
+            module_reject_courses=[],
+            module_reject_courses_with=[],
+            module_unavailable_as_pe=[],
+            module_not_offered_as_bde=not_offered_as_bde,
+            module_not_offered_as_ue=not_offered_as_ue,
             module_pass_fail=is_pass_fail,
+            module_description=module_description,
         )
 
         expected = Module(
@@ -41,11 +57,16 @@ def test_tokens_to_module():
             mutually_exclusives=module_mutually_exclusives,
             needs_year=None if year is None else int(year.literal),
             needs_modules=module_pre_requisite_mods,
+            needs_exclusives=module_pre_requisite_exclusives.literal,
             rejects_courses=[],
+            rejects_courses_with=[],
+            unavailable_as_pe=[],
             allowed_courses=[],
             rejects_modules=[],
-            is_bde=False,
+            not_offered_as_bde=not_offered_as_bde,
+            not_offered_as_ue=not_offered_as_ue,
             is_pass_fail=is_pass_fail,
+            description=module_description.literal,
         )
 
         assert actual == expected
@@ -232,7 +253,7 @@ def test_parser_pass_fail():
     )
 
 
-def test_parser_module_description():
+def test_parser_module_title():
     check_parser(
         cases=[
             ParseCase("No match", exception=Exception),
@@ -258,7 +279,7 @@ def test_parser_module_description():
                 position=2,
             ),
         ],
-        method=Parser.module_description,
+        method=Parser.module_title,
     )
 
 
@@ -316,6 +337,24 @@ def test_parser_pre_requisite_mods():
     )
 
 
+def test_parser_pre_requisite_exclusives():
+    check_parser(
+        cases=[
+            ParseCase("", None),
+            ParseCase("Prerequisite", exception=Exception),
+            ParseCase("Prerequisite:", Token(TokenType.IDENTIFIER, "")),
+            ParseCase(
+                text="Prerequisite: Only for Premier Scholars Programme students",
+                expected=Token(
+                    TokenType.IDENTIFIER,
+                    "Only for Premier Scholars Programme students",
+                ),
+            ),
+        ],
+        method=Parser.pre_requisite_exclusives,
+    )
+
+
 def test_parser_mutally_exclusive():
     check_parser(
         cases=[
@@ -329,4 +368,92 @@ def test_parser_mutally_exclusive():
             ),
         ],
         method=Parser.mutually_exclusive,
+    )
+
+
+def test_parser_not_available_to_programme():
+    check_parser(
+        cases=[
+            ParseCase("", []),
+            ParseCase("Not available to Programme", exception=Exception),
+            ParseCase("Not available to Programme:", []),
+            ParseCase(
+                text="Not available to Programme: CE",
+                expected=[Course("CE", None, None, None, None)],
+            ),
+            ParseCase(
+                text="Not available to Programme: REP(CSC)",
+                expected=[Course("REP", None, None, None, "CSC")],
+            ),
+            ParseCase(
+                text="Not available to Programme: REP(CSC), REP(CE)",
+                expected=[
+                    Course("REP", None, None, None, "CSC"),
+                    Course("REP", None, None, None, "CE"),
+                ],
+            ),
+            ParseCase(
+                text="Not available to Programme: EEE(Direct Entry)",
+                expected=[
+                    Course("EEE", True, None, None, None),
+                ],
+            ),
+            ParseCase(
+                text="Not available to Programme: EEE(2018-onwards)(Non Direct Entry)",
+                expected=[
+                    Course("EEE", False, 2018, 9999, None),
+                ],
+            ),
+            ParseCase(
+                text="Not available to Programme: EEE(2018-onwards)(Non Direct Entry), IEM(2019-onwards)(Direct Entry), MEEC(RMS)(2020-onwards)(Direct Entry)",
+                expected=[
+                    Course("EEE", False, 2018, 9999, None),
+                    Course("IEM", True, 2019, 9999, None),
+                    Course("MEEC", True, 2020, 9999, "RMS"),
+                ],
+            ),
+        ],
+        method=Parser.not_available_to_programme,
+    )
+
+
+def test_parser_not_available_to_programme_with():
+    check_parser(
+        cases=[
+            ParseCase("", []),
+            ParseCase("Not available to all Programme with", exception=Exception),
+            ParseCase("Not available to all Programme with:", []),
+            ParseCase(
+                text="Not available to all Programme with: (Admyr 2021-onwards)",
+                expected=[Course(KeyWords.ADMYR, None, 2021, 9999, None)],
+            ),
+            ParseCase(
+                text="Not available to all Programme with: (Admyr 2011-2019), (Admyr 2021-onwards)",
+                expected=[
+                    Course(KeyWords.ADMYR, None, 2011, 2019, None),
+                    Course(KeyWords.ADMYR, None, 2021, 9999, None),
+                ],
+            ),
+        ],
+        method=Parser.not_available_to_programme_with,
+    )
+
+
+def test_parser_not_offered_as_bde():
+    check_parser(
+        cases=[
+            ParseCase("", False),
+            ParseCase("Not offered as Broadening and Deepening Elective", True),
+        ],
+        method=Parser.not_offered_as_bde,
+    )
+
+
+def test_parser_not_offered_as_ue():
+    check_parser(
+        cases=[
+            ParseCase("", False),
+            ParseCase("Not offered as Unrestricted Elective", True),
+        ],
+        method=Parser.not_offered_as_ue,
     )

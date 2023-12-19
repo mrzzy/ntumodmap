@@ -17,6 +17,7 @@ class ModuleCode:
 
 @dataclass
 class Course:
+    # There is a special case of course str: "Admyr" - admission year
     course: str
     # these are noted by "(Direct Entry)" or "(Non Direct Entry)"
     # when we refer to the course, this tells us
@@ -24,10 +25,16 @@ class Course:
     is_direct_entry: Optional[bool]
     # these states from what year
     # e.g. "EEEC(2018-onwards)"
-    from_year: int
+    from_year: Optional[int]
+    # Sometimes we need to state until which year
+    # e.g. "(Admyr 2004-2013)"
+    # 2004-onwards is treated as 2004-9999
+    to_year: Optional[int]
+    # Possible to have alternate representations
+    # e.g. "ENG(ENE)"
+    alt_course: Optional[str]
 
 
-# TODO(lczm): how do we represent modules as part of an IR?
 @dataclass
 class Module:
     code: ModuleCode
@@ -36,8 +43,13 @@ class Module:
     mutually_exclusives: list[ModuleCode]
     needs_year: Optional[int]
     needs_modules: list[list[ModuleCode]]
+    needs_exclusives: str
     rejects_modules: list[ModuleCode]
     rejects_courses: list[Course]
+    rejects_courses_with: list[Course]
+    unavailable_as_pe: list[Course]
     allowed_courses: list[Course]
-    is_bde: bool
+    not_offered_as_bde: bool
+    not_offered_as_ue: bool
     is_pass_fail: bool
+    description: str

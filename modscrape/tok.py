@@ -7,6 +7,33 @@ from dataclasses import dataclass
 from enum import Enum
 
 
+# These are textual keywords - we don't want to manually type in the keywords for identifiers
+# we just match them to these:
+# e.g. Mutually Exclusive => match_consecutive_identifiers([KeyWords.MUTUALLY, KeyWords.EXCLUSIVE])
+class KeyWords:
+    AVAIL = "available"
+    TO = "to"
+    ALL = "all"
+    PROGRAMME = "Programme"
+    AS = "as"
+    PE = "PE"
+    AND = "and"
+
+    MUTUALLY = "Mutually"
+    EXCLUSIVE = "exclusive"
+    WITH = "with"
+    NOT = "Not"
+    OFFERED = "offered"
+
+    UNRESTRICTED = "Unrestricted"
+    ELECTIVE = "Elective"
+    BROADENING = "Broadening"
+    DEEPENING = "Deepening"
+
+    # Academic Year
+    ADMYR = "Admyr"
+
+
 class TokenType(Enum):
     # Mod cred
     AU = "AU"
@@ -20,32 +47,11 @@ class TokenType(Enum):
     # Prereq/Coreq
     PREREQ = "Prerequisite"
     COREQ = "Corequisite"
+    STANDING = "standing"
+
     # Some prereqs are listed as X OR Y OR Z
     OR = "OR"
     AND = "&"
-
-    MUTUALLY = "Mutually"
-    EXCLUSIVE = "exclusive"
-    WITH = "with"
-    NOT = "Not"
-    AVAIL = "available"
-    TO = "to"
-    PROGRAMME = "Programme"
-    AS = "as"
-    PE = "PE"
-    OFFERED = "offered"
-    UNRESTRICTED = "Unrestricted"
-    ELECTIVE = "Elective"
-    BROADENING = "Broadening"
-    DEEPENING = "Deepening"
-    STANDING = "standing"
-
-    MUTUALLY_EXCLUSIVE = "Mutually exclusive with"
-    NOT_AVAIL_TO_PROG = "Not available to Programme"
-    NOT_AVAIL_TO_PROG_WITH = "Not available to all Programme with"
-    NOT_AVAIL_AS_PE_TO_PROG = "Not available as PE to Programme"
-    NOT_OFFERED_AS_UE = "Not offered as Unrestricted Elective"
-    NOT_OFFERED_AS_BDE = "Not offered as Broadening and Deepening Elective"
 
     DOT = "."
     COMMA = ","

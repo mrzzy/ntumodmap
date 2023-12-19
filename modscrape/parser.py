@@ -10,7 +10,7 @@ from itertools import repeat
 from typing import Callable, Iterable, Optional, TypeVar, cast
 
 from module import Course, Module, ModuleCode
-from tok import Token, TokenType, flatten_tokens
+from tok import KeyWords, Token, TokenType, flatten_tokens
 
 # I note that this may be bad practice but I dont see any other way to
 # unwrap an optional
@@ -49,16 +49,21 @@ def tokens_to_module(
     module_mutually_exclusives: list[ModuleCode],
     module_pre_requisite_year: Optional[Token],
     module_pre_requisite_mods: list[list[ModuleCode]],
+    module_pre_requisite_exclusives: Optional[Token],
+    module_reject_courses: list[Course],
+    module_reject_courses_with: list[Course],
+    module_unavailable_as_pe: list[Course],
+    module_not_offered_as_bde: bool,
+    module_not_offered_as_ue: bool,
     module_pass_fail: bool,
+    module_description: Optional[Token],
 ) -> Module:
     title = module_title.literal
     au = float(module_au.literal)
-
-    # TODO: To be filled in
     rejects_modules: list[ModuleCode] = []
-    rejects_courses: list[Course] = []
+    rejects_courses: list[Course] = module_reject_courses
+    rejects_courses_with: list[Course] = module_reject_courses_with
     allowed_courses: list[Course] = []
-    is_bde = False
 
     return Module(
         module_code,
@@ -72,11 +77,20 @@ def tokens_to_module(
             else None
         ),
         module_pre_requisite_mods,
+        (
+            module_pre_requisite_exclusives.literal
+            if module_pre_requisite_exclusives is not None
+            else ""
+        ),
         rejects_modules,
         rejects_courses,
+        rejects_courses_with,
+        module_unavailable_as_pe,
         allowed_courses,
-        is_bde,
+        module_not_offered_as_bde,
+        module_not_offered_as_ue,
         module_pass_fail,
+        (module_description.literal if module_description is not None else ""),
     )
 
 
@@ -263,6 +277,90 @@ class Parser:
         # module_code can be (None | ModuleCode(CB1131))
         return module_code
 
+    def course(self) -> Course:
+        # TODO: Concatenate the course code into one,
+        # can possible be MS-2ndMaj/Spec, which is multiple identifier tokens
+        course_code = self.consume(
+            TokenType.IDENTIFIER, "Expected an identifier for a course"
+        )
+
+        alt_course_code = None
+        from_year = None
+        to_year = None
+        is_direct_entry = None
+
+        # Possible cases: ENG(ENE)(2018-onwards)
+        # There are up to 3 possible parenthesis here - just match them all
+        for _ in range(3):
+            if self.match(TokenType.LPAREN):
+                # Check for alternate representations
+                if self.match_consecutive_identifiers(["Direct", "Entry"]):
+                    is_direct_entry = True
+                elif self.match_consecutive_identifiers(["Non", "Direct", "Entry"]):
+                    is_direct_entry = False
+                elif self.match(TokenType.IDENTIFIER):
+                    previous_token = cast(Token, self.previous_token())
+                    alt_course_code = previous_token.literal
+                    # Close off the parenthesis
+                elif self.match(TokenType.NUMBER):
+                    previous_token = cast(Token, self.previous_token())
+                    from_year = int(previous_token.literal)
+                    # Optional dash
+                    if self.match(TokenType.DASH):
+                        # Expect either a number or a "onwards"
+                        if self.match_identifier("onwards"):
+                            to_year = 9999
+                        elif self.match_no_move(TokenType.NUMBER):
+                            # Matched beforehand, will never be none
+                            current_token = cast(Token, self.current_token())
+                            to_year = int(current_token.literal)
+                            self.move()
+                self.consume(TokenType.RPAREN, "Expected a ')' to close off '('")
+
+        return Course(
+            course=course_code.literal,
+            is_direct_entry=is_direct_entry,
+            from_year=from_year,
+            to_year=to_year,
+            alt_course=alt_course_code,
+        )
+
+    # Although this and self.course() both returns Course
+    # They are used in separate contexts and separating their parsing
+    # capabilities here will be easier
+    # This parses for e.g. (Admyr 2011-2020)
+    # Two sample cases for reference
+    # 1: "Admyr 2011-2020"
+    # 2: "Admyr 2011-onwards"
+    def admyr(self) -> Course:
+        from_year = None
+        to_year = None
+        if self.match(TokenType.LPAREN):
+            if self.match_identifier(KeyWords.ADMYR):
+                if self.match_no_move(TokenType.NUMBER):
+                    current_token = cast(Token, self.current_token())
+                    from_year = int(current_token.literal)
+                    self.move()
+                    if self.match(TokenType.DASH):
+                        # Either a numerical to year or "onwards"
+                        if self.match_no_move(TokenType.NUMBER):
+                            # Matched beforehand, will never be none
+                            current_token = cast(Token, self.current_token())
+                            to_year = int(current_token.literal)
+                            self.move()
+                        elif self.match_identifier("onwards"):
+                            to_year = 9999
+
+            self.consume(TokenType.RPAREN, "Expected ')' after '(")
+
+        return Course(
+            "Admyr",
+            None,
+            from_year,
+            to_year,
+            None,
+        )
+
     def pass_fail(self) -> bool:
         initial_position = self.position
         found = self.match_multi([TokenType.GRADE, TokenType.TYPE])
@@ -281,7 +379,7 @@ class Parser:
         self.set_position(initial_position)
         return False
 
-    def module_description(self) -> Token:
+    def module_title(self) -> Token:
         # Parse module name until the numeric AU
         # e.g. Introduction to Computational Thinking
         module_description = []
@@ -340,6 +438,28 @@ class Parser:
         while self.match(TokenType.AND):
             current_set.append(self.module_code())
         return current_set
+
+    # Matches for the edge cases of prerequisite:
+    # One of the cases are
+    # 1. Prerequisite: Only for Premier Scholars Programme students
+    # Since this is the only one that can be found, I will parse it as one sentence.
+    # With the period at the end
+    def pre_requisite_exclusives(self) -> Optional[Token]:
+        initial_position = self.position
+        if not self.match(TokenType.PREREQ):
+            return None
+        try:
+            self.consume(TokenType.COLON, 'Expect colon after "Prerequisite"')
+        except Exception as e:
+            self.set_position(initial_position)
+            raise e
+
+        exclusives: list[Token] = []
+        while self.match_no_move(TokenType.IDENTIFIER):
+            # Guaranteed to not be a None, since matched above
+            exclusives.append(cast(Token, self.current_token()))
+            self.move()
+        return flatten_tokens(TokenType.IDENTIFIER, exclusives)
 
     # This returns a Token.NUMBER of year of the pre-requisite
     def pre_requisite_year(self) -> Optional[Token]:
@@ -401,7 +521,7 @@ class Parser:
         initial_position = self.position
         # If it does not start with "Mutually exclusive with"
         if not self.match_consecutive_identifiers(
-            [TokenType.MUTUALLY.value, TokenType.EXCLUSIVE.value, TokenType.WITH.value]
+            [KeyWords.MUTUALLY, KeyWords.EXCLUSIVE, KeyWords.WITH]
         ):
             return []
         try:
@@ -420,27 +540,195 @@ class Parser:
 
         return exclusive_mods
 
+    def not_available_to_programme(self) -> list[Course]:
+        initial_position = self.position
+        if not self.match_consecutive_identifiers(
+            [
+                KeyWords.NOT,
+                KeyWords.AVAIL,
+                KeyWords.TO,
+                KeyWords.PROGRAMME,
+            ]
+        ):
+            return []
+        try:
+            # There's always a ':' after 'Not available to Programme'
+            self.consume(
+                TokenType.COLON, "Expected ':' after 'Not available to Programme'"
+            )
+        except Exception as e:
+            self.set_position(initial_position)
+            raise e
+
+        courses: list[Course] = []
+        while self.current_token() is not None:
+            courses.append(self.course())
+            current_token = self.current_token()
+            # End of paragraph
+            if current_token is None:
+                break
+            if current_token.token_type == TokenType.COMMA:
+                self.move()
+            else:
+                break
+        return courses
+
+    def not_available_to_programme_with(self) -> list[Course]:
+        initial_position = self.position
+        if not self.match_consecutive_identifiers(
+            [
+                KeyWords.NOT,
+                KeyWords.AVAIL,
+                KeyWords.TO,
+                KeyWords.ALL,
+                KeyWords.PROGRAMME,
+                KeyWords.WITH,
+            ]
+        ):
+            return []
+        # There's always a ':' after 'Not available to Programme with'
+        try:
+            self.consume(
+                TokenType.COLON, "Expected ':' after 'Not available to Programme with'"
+            )
+        except Exception as e:
+            self.set_position(initial_position)
+            raise e
+
+        admyr_courses: list[Course] = []
+        while course := self.admyr():
+            # The case where it parses nothing,
+            # If the source text has an additional ',' at the end, it will try to parse
+            # what comes after that, but nothing will be parsed, but an course object
+            # will be returned, if it's a dud, we just check the important from_year
+            if course.from_year is None:
+                break
+            admyr_courses.append(course)
+            current_token = self.current_token()
+            # End of paragraph
+            if current_token is None:
+                break
+            if current_token.token_type == TokenType.COMMA:
+                self.move()
+            else:
+                break
+        return admyr_courses
+
+    def not_available_as_pe_to_programme(self) -> list[Course]:
+        if not self.match_consecutive_identifiers(
+            [
+                KeyWords.NOT,
+                KeyWords.AVAIL,
+                KeyWords.AS,
+                KeyWords.PE,
+                KeyWords.TO,
+                KeyWords.PROGRAMME,
+            ]
+        ):
+            return []
+        # There's always a ':' after 'Not available to Programme with'
+        self.consume(
+            TokenType.COLON, "Expected ':' after 'Not available as PE to Programme'"
+        )
+
+        courses: list[Course] = []
+        while course := self.course():
+            courses.append(course)
+            current_token = self.current_token()
+            if current_token is None:
+                raise Exception(
+                    "Expected a token while parsing courses, but no tokens remain."
+                )
+            if current_token.token_type == TokenType.COMMA:
+                self.move()
+            else:
+                break
+        return courses
+
+    def not_offered_as_bde(self) -> bool:
+        initial_position = self.position
+        if self.match_consecutive_identifiers(
+            [
+                KeyWords.NOT,
+                KeyWords.OFFERED,
+                KeyWords.AS,
+                KeyWords.BROADENING,
+                KeyWords.AND,
+                KeyWords.DEEPENING,
+                KeyWords.ELECTIVE,
+            ]
+        ):
+            return True
+        self.position = initial_position
+        return False
+
+    def not_offered_as_ue(self) -> bool:
+        initial_position = self.position
+        if self.match_consecutive_identifiers(
+            [
+                KeyWords.NOT,
+                KeyWords.OFFERED,
+                KeyWords.AS,
+                KeyWords.UNRESTRICTED,
+                KeyWords.ELECTIVE,
+            ]
+        ):
+            return True
+            # return Token(TokenType.NOT_OFFERED_AS_UE, TokenType.NOT_OFFERED_AS_UE.value)
+        self.position = initial_position
+        return False
+
+    def module_description(self) -> Token:
+        descriptions: list[Token] = []
+        while not self.match_no_move(TokenType.MODULE_CODE):
+            current_token = self.current_token()
+            if current_token is None:
+                break
+            descriptions.append(current_token)
+            self.move()
+        return flatten_tokens(TokenType.IDENTIFIER, descriptions)
+
     def module(self) -> Optional[Module]:
         module_code = self.module_code()
-        module_description = self.module_description()
+        module_title = self.module_title()
         module_au = self.au()
         pass_fail = self.pass_fail()
 
         # Try to match for prerequisites, note that there are two choices here
         pre_requisites_year = self.pre_requisite_year()
         pre_requisites_mods = self.pre_requisite_mods()
+        pre_requisite_exclusives = self.pre_requisite_exclusives()
 
         # Try to match for mutually exclusives
         mutually_exclusives = self.mutually_exclusive()
 
+        # Try to match for not available to programme
+        not_available_to_programme = self.not_available_to_programme()
+        not_available_to_programme_with = self.not_available_to_programme_with()
+        not_available_as_pe_to_programme = self.not_available_as_pe_to_programme()
+
+        # Unavailable as broadening and deeping electives | unrestricted electives
+        not_offered_as_bde = self.not_offered_as_bde()
+        not_offered_as_ue = self.not_offered_as_ue()
+
+        # Get the rest of the module description
+        module_description = self.module_description()
+
         module = tokens_to_module(
-            module_code,
-            module_description,
-            module_au,
-            mutually_exclusives,
-            pre_requisites_year,
-            pre_requisites_mods,
-            pass_fail,  # module pass fail
+            module_code=module_code,
+            module_title=module_title,
+            module_au=module_au,
+            module_mutually_exclusives=mutually_exclusives,
+            module_pre_requisite_year=pre_requisites_year,
+            module_pre_requisite_mods=pre_requisites_mods,
+            module_pre_requisite_exclusives=pre_requisite_exclusives,
+            module_reject_courses=not_available_to_programme,
+            module_reject_courses_with=not_available_to_programme_with,
+            module_unavailable_as_pe=not_available_as_pe_to_programme,
+            module_not_offered_as_bde=not_offered_as_bde,
+            module_not_offered_as_ue=not_offered_as_ue,
+            module_pass_fail=pass_fail,  # module pass fail
+            module_description=module_description,
         )
 
         return module
