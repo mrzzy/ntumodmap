@@ -12,7 +12,7 @@ import pytest
 
 from lexer import lex
 from module import Course, Module, ModuleCode
-from tok import Token, TokenType
+from tok import KeyWords, Token, TokenType
 
 
 # Utility function tests
@@ -425,13 +425,13 @@ def test_parser_not_available_to_programme_with():
             ParseCase("Not available to all Programme with:", []),
             ParseCase(
                 text="Not available to all Programme with: (Admyr 2021-onwards)",
-                expected=[Course("Admyr", None, 2021, 9999, None)],
+                expected=[Course(KeyWords.ADMYR, None, 2021, 9999, None)],
             ),
             ParseCase(
                 text="Not available to all Programme with: (Admyr 2011-2019), (Admyr 2021-onwards)",
                 expected=[
-                    Course("Admyr", None, 2011, 2019, None),
-                    Course("Admyr", None, 2021, 9999, None),
+                    Course(KeyWords.ADMYR, None, 2011, 2019, None),
+                    Course(KeyWords.ADMYR, None, 2021, 9999, None),
                 ],
             ),
         ],

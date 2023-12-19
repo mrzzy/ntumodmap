@@ -30,6 +30,9 @@ class KeyWords:
     BROADENING = "Broadening"
     DEEPENING = "Deepening"
 
+    # Academic Year
+    ADMYR = "Admyr"
+
 
 class TokenType(Enum):
     # Mod cred

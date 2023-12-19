@@ -336,7 +336,7 @@ class Parser:
         from_year = None
         to_year = None
         if self.match(TokenType.LPAREN):
-            if self.match_identifier("Admyr"):
+            if self.match_identifier(KeyWords.ADMYR):
                 if self.match_no_move(TokenType.NUMBER):
                     current_token = cast(Token, self.current_token())
                     from_year = int(current_token.literal)
