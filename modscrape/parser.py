@@ -94,6 +94,12 @@ def tokens_to_module(
     )
 
 
+class ParseException(Exception):
+    """Indicates an an error when parsing"""
+
+    pass
+
+
 class Parser:
     def __init__(self, tokens: list[list[Token]]):
         self.tokens = tokens
@@ -219,7 +225,7 @@ class Parser:
         if not try_match:
             current_token = self.current_token()
             received = "no token" if current_token is None else current_token.token_type
-            raise Exception(
+            raise ParseException(
                 f"Error: expected {token_type} but received {received}",
             )
         # desired tokens was just matched, so retrieving previous should not return None
@@ -230,7 +236,7 @@ class Parser:
         if not try_match:
             current_token = self.current_token()
             received = "no token" if current_token is None else current_token.token_type
-            raise Exception(
+            raise ParseException(
                 f"Error: expected {token_types} but received {received}",
             )
         # desired tokens was just matched, so retrieving previous should not return None
@@ -250,10 +256,14 @@ class Parser:
             )
             misc = []
             while not self.match(TokenType.RPAREN):
+                if self.current_token() is None:
+                    raise ParseException(
+                        "Expected miscellaneous to end with right parenthesis"
+                    )
                 # match any token within parenthesis as miscellaneous
                 misc.append(cast(Token, self.current_token()).literal)
                 self.position += 1
-        except Exception as e:
+        except ParseException as e:
             self.set_position(reset_position)
             raise e
         return " ".join(misc)
@@ -373,7 +383,7 @@ class Parser:
                     TokenType.FAIL, "Expected 'Fail' after 'Grade Type: Pass/Fail'"
                 )
                 return True
-            except Exception as e:
+            except ParseException as e:
                 self.set_position(initial_position)
                 raise e
         self.set_position(initial_position)
@@ -388,7 +398,7 @@ class Parser:
             token = self.current_token()
             if token is None:
                 self.set_position(reset_position)
-                raise Exception(
+                raise ParseException(
                     "Expected token to parse as module description, but no tokens remain."
                 )
             module_description.append(token)
@@ -418,7 +428,7 @@ class Parser:
                     TokenType.NUMBER, "Expected a decimal number to indicate AUs"
                 )
             )
-        except Exception as e:
+        except ParseException as e:
             self.set_position(reset_position)
             raise e
 
@@ -428,7 +438,7 @@ class Parser:
             self.miscellaneous()
         if not has_suffix:
             self.set_position(reset_position)
-            raise Exception("Expected a AU or school name suffix after AU.")
+            raise ParseException("Expected a AU or school name suffix after AU.")
 
         return flatten_tokens(TokenType.AU, tokens, interval="")
 
@@ -450,7 +460,7 @@ class Parser:
             return None
         try:
             self.consume(TokenType.COLON, 'Expect colon after "Prerequisite"')
-        except Exception as e:
+        except ParseException as e:
             self.set_position(initial_position)
             raise e
 
@@ -486,7 +496,7 @@ class Parser:
                     f"Expected a standing after Year/Study Year {year}",
                 )
                 return year
-        except Exception as e:
+        except ParseException as e:
             self.set_position(initial_position)
             raise e
 
@@ -501,7 +511,7 @@ class Parser:
             return []
         try:
             self.consume(TokenType.COLON, 'Expect colon after "Prerequisite"')
-        except Exception as e:
+        except ParseException as e:
             self.set_position(initial_position)
             raise e
 
@@ -528,7 +538,7 @@ class Parser:
             self.consume(
                 TokenType.COLON, 'Expected colon after "Mutually Exclusive with"'
             )
-        except Exception as e:
+        except ParseException as e:
             self.set_position(initial_position)
             raise e
 
@@ -556,7 +566,7 @@ class Parser:
             self.consume(
                 TokenType.COLON, "Expected ':' after 'Not available to Programme'"
             )
-        except Exception as e:
+        except ParseException as e:
             self.set_position(initial_position)
             raise e
 
@@ -591,7 +601,7 @@ class Parser:
             self.consume(
                 TokenType.COLON, "Expected ':' after 'Not available to Programme with'"
             )
-        except Exception as e:
+        except ParseException as e:
             self.set_position(initial_position)
             raise e
 
@@ -636,7 +646,7 @@ class Parser:
             courses.append(course)
             current_token = self.current_token()
             if current_token is None:
-                raise Exception(
+                raise ParseException(
                     "Expected a token while parsing courses, but no tokens remain."
                 )
             if current_token.token_type == TokenType.COMMA:

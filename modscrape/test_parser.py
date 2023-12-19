@@ -5,7 +5,7 @@
 #
 
 from dataclasses import dataclass
-from parser import Parser, tokens_to_module
+from parser import ParseException, Parser, tokens_to_module
 from typing import Any, Callable, Iterable, Optional, Type, cast
 
 import pytest
@@ -86,7 +86,7 @@ class ParseCase:
 
     text: str
     expected: Optional[Any] = None
-    exception: Optional[Type[Exception]] = None
+    exception: Optional[Type[ParseException]] = None
     position: Optional[int] = None
 
     def __post_init__(self):
@@ -185,7 +185,7 @@ def test_parser_match_au():
 def test_parser_consume(tokens: list[list[Token]]):
     # wrong token type
     parser = Parser(tokens)
-    with pytest.raises(Exception):
+    with pytest.raises(ParseException):
         parser.consume(TokenType.PREREQ, "wrong token type")
 
     # consume single
@@ -203,18 +203,18 @@ def test_parser_consume(tokens: list[list[Token]]):
     assert parser.position == len(tokens[0])
 
     # exhausted tokens
-    with pytest.raises(Exception):
+    with pytest.raises(ParseException):
         parser.consume(TokenType.IDENTIFIER, "end of string")
-    with pytest.raises(Exception):
+    with pytest.raises(ParseException):
         parser.consume_multi([TokenType.IDENTIFIER], "end of string")
 
 
-def test_parser_mischellaneous():
+def test_parser_miscellaneous():
     check_parser(
         cases=[
-            ParseCase("No match", exception=Exception),
-            ParseCase("No match)", exception=Exception),
-            ParseCase("(No match", exception=Exception),
+            ParseCase("No match", exception=ParseException),
+            ParseCase("No match)", exception=ParseException),
+            ParseCase("(No match", exception=ParseException),
             ParseCase("()", ""),
             ParseCase("(match this) not this", "match this", position=4),
             # check non identifier tokens are considered miscellaneous if
@@ -235,7 +235,7 @@ def test_parser_module_code():
                 "CC0005(Miscellaneous information)",
                 ModuleCode("CC0005", misc="Miscellaneous information"),
             ),
-            ParseCase("::SC1005", exception=Exception),
+            ParseCase("::SC1005", exception=ParseException),
         ],
         method=Parser.module_code,
     )
@@ -247,7 +247,7 @@ def test_parser_pass_fail():
             # input, return value, exception
             ParseCase("No match", False, position=0),
             ParseCase("Grade Type: Pass/Fail", True),
-            ParseCase("Grade Type: Malformed", exception=Exception),
+            ParseCase("Grade Type: Malformed", exception=ParseException),
         ],
         method=Parser.pass_fail,
     )
@@ -256,7 +256,7 @@ def test_parser_pass_fail():
 def test_parser_module_title():
     check_parser(
         cases=[
-            ParseCase("No match", exception=Exception),
+            ParseCase("No match", exception=ParseException),
             ParseCase(
                 "INTRODUCTION TO COMPUTATIONAL THINKING & PROGRAMMING 	3.0 AU",
                 Token(
@@ -286,8 +286,8 @@ def test_parser_module_title():
 def test_parser_au():
     check_parser(
         cases=[
-            ParseCase("No number", exception=Exception),
-            ParseCase("5 missing token", exception=Exception),
+            ParseCase("No number", exception=ParseException),
+            ParseCase("5 missing token", exception=ParseException),
             ParseCase("3.0 AU", Token(TokenType.AU, "3.0")),
             ParseCase(".0 AU", Token(TokenType.AU, ".0")),
             ParseCase("3.5 ADM", Token(TokenType.AU, "3.5")),
@@ -302,7 +302,7 @@ def test_parser_pre_requisite_year():
         cases=[
             ParseCase("", None),
             # no comma after prerequisite
-            ParseCase("Prerequisite", exception=Exception),
+            ParseCase("Prerequisite", exception=ParseException),
             ParseCase("Prerequisite:", None, position=0),
             ParseCase("Prerequisite: Year 3 standing", Token(TokenType.NUMBER, "3")),
             ParseCase(
@@ -318,7 +318,7 @@ def test_parser_pre_requisite_mods():
         cases=[
             ParseCase("", []),
             # no comma after prerequisite
-            ParseCase("Prerequisite", exception=Exception),
+            ParseCase("Prerequisite", exception=ParseException),
             ParseCase("Prerequisite:", [], position=0),
             ParseCase(
                 text="Prerequisite: CZ1007 & CZ2001(Corequisite)"
@@ -341,7 +341,7 @@ def test_parser_pre_requisite_exclusives():
     check_parser(
         cases=[
             ParseCase("", None),
-            ParseCase("Prerequisite", exception=Exception),
+            ParseCase("Prerequisite", exception=ParseException),
             ParseCase("Prerequisite:", Token(TokenType.IDENTIFIER, "")),
             ParseCase(
                 text="Prerequisite: Only for Premier Scholars Programme students",
@@ -360,7 +360,7 @@ def test_parser_mutally_exclusive():
         cases=[
             ParseCase("", []),
             # no comma after "Mutually exclusive with"
-            ParseCase("Mutually exclusive with", exception=Exception),
+            ParseCase("Mutually exclusive with", exception=ParseException),
             ParseCase("Mutually exclusive with:", []),
             ParseCase(
                 text="Mutually exclusive with: CE4031, SC3020",
@@ -375,7 +375,7 @@ def test_parser_not_available_to_programme():
     check_parser(
         cases=[
             ParseCase("", []),
-            ParseCase("Not available to Programme", exception=Exception),
+            ParseCase("Not available to Programme", exception=ParseException),
             ParseCase("Not available to Programme:", []),
             ParseCase(
                 text="Not available to Programme: CE",
@@ -421,7 +421,7 @@ def test_parser_not_available_to_programme_with():
     check_parser(
         cases=[
             ParseCase("", []),
-            ParseCase("Not available to all Programme with", exception=Exception),
+            ParseCase("Not available to all Programme with", exception=ParseException),
             ParseCase("Not available to all Programme with:", []),
             ParseCase(
                 text="Not available to all Programme with: (Admyr 2021-onwards)",
