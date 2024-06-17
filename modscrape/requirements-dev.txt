@@ -24,4 +24,4 @@ types-beautifulsoup4==4.12.0.7
 types-html5lib==1.1.11.15
 types-requests==2.31.0.10
 typing_extensions==4.8.0
-urllib3==2.0.7
+urllib3==2.2.2
